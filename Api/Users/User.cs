@@ -5,13 +5,25 @@ namespace TourGuide.Users;
 
 public class User
 {
+    private readonly List<VisitedLocation> _visitedLocations = new();
+    private readonly List<UserReward> _userRewards = new();
+    private readonly object _verrou = new();
+
     public Guid UserId { get; }
     public string UserName { get; }
     public string PhoneNumber { get; set; }
     public string EmailAddress { get; set; }
     public DateTime LatestLocationTimestamp { get; set; }
-    public List<VisitedLocation> VisitedLocations { get; } = new List<VisitedLocation>();
-    public List<UserReward> UserRewards { get; } = new List<UserReward>();
+    public List<VisitedLocation> VisitedLocations
+    {
+        get { lock (_verrou) { return new List<VisitedLocation>(_visitedLocations); } }
+    }
+
+    public List<UserReward> UserRewards
+    {
+        get { lock (_verrou) { return new List<UserReward>(_userRewards); } }
+    }
+
     public UserPreferences UserPreferences { get; set; } = new UserPreferences();
     public List<Provider> TripDeals { get; set; } = new List<Provider>();
 
@@ -25,24 +37,36 @@ public class User
 
     public void AddToVisitedLocations(VisitedLocation visitedLocation)
     {
-        VisitedLocations.Add(visitedLocation);
+        lock (_verrou)
+        {
+            _visitedLocations.Add(visitedLocation);
+        }
     }
 
     public void ClearVisitedLocations()
     {
-        VisitedLocations.Clear();
+        lock (_verrou)
+        {
+            _visitedLocations.Clear();
+        }
     }
 
     public void AddUserReward(UserReward userReward)
     {
-        if (!UserRewards.Exists(r => r.Attraction.AttractionName == userReward.Attraction.AttractionName))
+        lock (_verrou)
         {
-            UserRewards.Add(userReward);
+            if (!_userRewards.Exists(r => r.Attraction.AttractionName == userReward.Attraction.AttractionName))
+            {
+                _userRewards.Add(userReward);
+            }
         }
     }
 
     public VisitedLocation GetLastVisitedLocation()
     {
-        return VisitedLocations[^1];
+        lock (_verrou)
+        {
+            return _visitedLocations[^1];
+        }
     }
 }
