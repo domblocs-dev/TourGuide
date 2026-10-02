@@ -42,7 +42,7 @@ public class RewardServiceTest : IClassFixture<DependencyFixture>
     public void NearAllAttractions()
     {
         _fixture.Initialize(1);
-        _fixture.RewardsService.SetProximityBuffer(int.MaxValue);
+        _fixture.RewardsService.SetProximityBuffer(int.MaxValue);   // neutralise le filtre géographique pour que toutes les attractions soient considérées comme proches
 
         var user = _fixture.TourGuideService.GetAllUsers().First();
         _fixture.RewardsService.CalculateRewards(user);
