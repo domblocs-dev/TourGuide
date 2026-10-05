@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
+using TourGuide.Dtos;
 using TourGuide.LibrairiesWrappers.Interfaces;
 using TourGuide.Services.Interfaces;
 using TourGuide.Users;
@@ -112,6 +113,26 @@ public class TourGuideService : ITourGuideService
             .Take(NombreAttractionsProches)
             .ToList();
     }
+
+    public List<NearbyAttractionDto> GetNearbyAttractionDtos(User user)
+    {
+        VisitedLocation visitedLocation = GetUserLocation(user);
+
+        return GetNearByAttractions(visitedLocation)
+            .Select(attraction => new NearbyAttractionDto
+            {
+                AttractionName = attraction.AttractionName,
+                AttractionLatitude = attraction.Latitude,
+                AttractionLongitude = attraction.Longitude,
+                UserLatitude = visitedLocation.Location.Latitude,
+                UserLongitude = visitedLocation.Location.Longitude,
+                DistanceInMiles = _rewardsService.GetDistance(attraction, visitedLocation.Location),
+                RewardPoints = _rewardsService.GetRewardPoints(attraction, user)
+            })
+            .ToList();
+    }
+
+
 
     private void AddShutDownHook()
     {
