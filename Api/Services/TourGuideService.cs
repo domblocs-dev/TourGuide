@@ -19,6 +19,7 @@ public class TourGuideService : ITourGuideService
     public Tracker Tracker { get; private set; }
     private readonly Dictionary<string, User> _internalUserMap = new();
     private const string TripPricerApiKey = "test-server-api-key";
+    private const int NombreAttractionsProches = 5;
     private bool _testMode = true;
 
     public TourGuideService(ILogger<TourGuideService> logger, IGpsUtil gpsUtil, IRewardsService rewardsService, ILoggerFactory loggerFactory)
@@ -90,7 +91,7 @@ public class TourGuideService : ITourGuideService
         return visitedLocation;
     }
 
-    public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
+    /* public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
     {
         List<Attraction> nearbyAttractions = new ();
         foreach (var attraction in _gpsUtil.GetAttractions())
@@ -102,6 +103,14 @@ public class TourGuideService : ITourGuideService
         }
 
         return nearbyAttractions;
+    } */
+
+    public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
+    {
+        return _gpsUtil.GetAttractions()
+            .OrderBy(a => _rewardsService.GetDistance(a, visitedLocation.Location))
+            .Take(NombreAttractionsProches)
+            .ToList();
     }
 
     private void AddShutDownHook()
