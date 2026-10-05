@@ -119,6 +119,9 @@ public class TourGuideService : ITourGuideService
         VisitedLocation visitedLocation = GetUserLocation(user);
 
         return GetNearByAttractions(visitedLocation)
+            .AsParallel()
+            .AsOrdered()
+            .WithDegreeOfParallelism(NombreAttractionsProches)
             .Select(attraction => new NearbyAttractionDto
             {
                 AttractionName = attraction.AttractionName,
