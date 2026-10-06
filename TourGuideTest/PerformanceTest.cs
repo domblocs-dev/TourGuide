@@ -67,6 +67,7 @@ namespace TourGuideTest
             _fixture.TourGuideService.Tracker.StopTracking();
 
             _output.WriteLine($"highVolumeTrackLocation: Time Elapsed: {stopWatch.Elapsed.TotalSeconds} seconds.");
+            _output.WriteLine($"Threads dans la réserve à la fin du test : {ThreadPool.ThreadCount}");
 
             Assert.True(TimeSpan.FromMinutes(15).TotalSeconds >= stopWatch.Elapsed.TotalSeconds);
         }
