@@ -21,6 +21,7 @@ public class TourGuideService : ITourGuideService
     private readonly Dictionary<string, User> _internalUserMap = new();
     private const string TripPricerApiKey = "test-server-api-key";
     private const int NombreAttractionsProches = 5;
+    public const int NombreSuivisSimultanes = 100;
     private bool _testMode = true;
 
     public TourGuideService(ILogger<TourGuideService> logger, IGpsUtil gpsUtil, IRewardsService rewardsService, ILoggerFactory loggerFactory)
@@ -91,6 +92,13 @@ public class TourGuideService : ITourGuideService
         _rewardsService.CalculateRewards(user);
         return visitedLocation;
     }
+
+    public void TrackAllUsersLocation(List<User> users)
+    {
+        var options = new ParallelOptions { MaxDegreeOfParallelism = NombreSuivisSimultanes };
+        Parallel.ForEach(users, options, user => TrackUserLocation(user));
+    }
+
 
     /* public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
     {

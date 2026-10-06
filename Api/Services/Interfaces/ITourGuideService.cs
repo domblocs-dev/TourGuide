@@ -18,6 +18,7 @@ namespace TourGuide.Services.Interfaces
         VisitedLocation GetUserLocation(User user);
         List<UserReward> GetUserRewards(User user);
         VisitedLocation TrackUserLocation(User user);
+        void TrackAllUsersLocation(List<User> users);
         List<NearbyAttractionDto> GetNearbyAttractionDtos(User user);
     }
 }
