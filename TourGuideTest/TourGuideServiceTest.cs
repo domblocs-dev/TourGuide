@@ -86,7 +86,7 @@ namespace TourGuideTest
         }
 
         //[Fact(Skip = "Not yet implemented")]
-        [Fact]
+        [Fact] // Tâche 2
         public void GetNearbyAttractions()
         {
             _fixture.Initialize(0);
@@ -100,7 +100,7 @@ namespace TourGuideTest
             Assert.Equal(5, attractions.Count);
         }
 
-        [Fact]
+        [Fact] // Tâche 1, correction 2
         public void GetTripDeals()
         {
             _fixture.Initialize(0);

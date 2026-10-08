@@ -38,7 +38,7 @@ public class RewardServiceTest : IClassFixture<DependencyFixture>
         Assert.True(_fixture.RewardsService.IsWithinAttractionProximity(attraction, attraction));
     }
 
-    [Fact]
+    [Fact] // Tâche 1, correction 1
     public void NearAllAttractions()
     {
         _fixture.Initialize(1);
