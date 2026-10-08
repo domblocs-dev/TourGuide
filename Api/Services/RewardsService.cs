@@ -14,6 +14,7 @@ public class RewardsService : IRewardsService
     private readonly IGpsUtil _gpsUtil;
     private readonly IRewardCentral _rewardsCentral;
     // private static int count = 0;
+    public const int NombreCalculsSimultanes = 100;
 
     public RewardsService(IGpsUtil gpsUtil, IRewardCentral rewardCentral)
     {
@@ -51,6 +52,12 @@ public class RewardsService : IRewardsService
                 }
             }
         }
+    }
+
+    public void CalculateAllUsersRewards(List<User> users)
+    {
+        var options = new ParallelOptions { MaxDegreeOfParallelism = NombreCalculsSimultanes };
+        Parallel.ForEach(users, options, user => CalculateRewards(user));
     }
 
     public bool IsWithinAttractionProximity(Attraction attraction, Locations location)

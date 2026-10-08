@@ -45,9 +45,10 @@ namespace TourGuideTest
         }
 
         // [Fact(Skip = ("Delete Skip when you want to pass the test"))]
-        [Fact]
+        [Fact] // Tâche 3
         public void HighVolumeTrackLocation()
         {
+            // .NET fournit les threads tout de suite
             ThreadPool.SetMinThreads(100, 100);
             //On peut ici augmenter le nombre d'utilisateurs pour tester les performances
             _fixture.Initialize(100000);
@@ -72,11 +73,13 @@ namespace TourGuideTest
             Assert.True(TimeSpan.FromMinutes(15).TotalSeconds >= stopWatch.Elapsed.TotalSeconds);
         }
 
-        [Fact(Skip = ("Delete Skip when you want to pass the test"))]
+        // [Fact(Skip = ("Delete Skip when you want to pass the test"))]
+        [Fact] // Tâche 4
         public void HighVolumeGetRewards()
         {
+            ThreadPool.SetMinThreads(100, 100);
             //On peut ici augmenter le nombre d'utilisateurs pour tester les performances
-            _fixture.Initialize(10);
+            _fixture.Initialize(100000);
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -85,7 +88,8 @@ namespace TourGuideTest
             List<User> allUsers = _fixture.TourGuideService.GetAllUsers();
             allUsers.ForEach(u => u.AddToVisitedLocations(new VisitedLocation(u.UserId, attraction, DateTime.Now)));
 
-            allUsers.ForEach(u => _fixture.RewardsService.CalculateRewards(u));
+            // allUsers.ForEach(u => _fixture.RewardsService.CalculateRewards(u));
+            _fixture.RewardsService.CalculateAllUsersRewards(allUsers);
 
             foreach (var user in allUsers)
             {
@@ -95,6 +99,7 @@ namespace TourGuideTest
             _fixture.TourGuideService.Tracker.StopTracking();
 
             _output.WriteLine($"highVolumeGetRewards: Time Elapsed: {stopWatch.Elapsed.TotalSeconds} seconds.");
+            _output.WriteLine($"Threads dans la réserve à la fin du test : {ThreadPool.ThreadCount}");
             Assert.True(TimeSpan.FromMinutes(20).TotalSeconds >= stopWatch.Elapsed.TotalSeconds);
         }
     }
