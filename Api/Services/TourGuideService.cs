@@ -1,7 +1,6 @@
 ﻿using GpsUtil.Location;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Globalization;
 using TourGuide.Dtos;
 using TourGuide.LibrairiesWrappers.Interfaces;
 using TourGuide.Services.Interfaces;
@@ -30,8 +29,6 @@ public class TourGuideService : ITourGuideService
         _tripPricer = new();
         _gpsUtil = gpsUtil;
         _rewardsService = rewardsService;
-
-        CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
         if (_testMode)
         {
