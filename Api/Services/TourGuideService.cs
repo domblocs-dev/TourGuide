@@ -7,6 +7,7 @@ using TourGuide.Services.Interfaces;
 using TourGuide.Users;
 using TourGuide.Utilities;
 using TripPricer;
+using System.Collections.Concurrent;
 
 namespace TourGuide.Services;
 
@@ -17,7 +18,7 @@ public class TourGuideService : ITourGuideService
     private readonly IRewardsService _rewardsService;
     private readonly TripPricer.TripPricer _tripPricer;
     public Tracker Tracker { get; private set; }
-    private readonly Dictionary<string, User> _internalUserMap = new();
+    private readonly ConcurrentDictionary<string, User> _internalUserMap = new();
     private const string TripPricerApiKey = "test-server-api-key";
     private const int NombreAttractionsProches = 5;
     public const int NombreSuivisSimultanes = 100;
@@ -66,10 +67,7 @@ public class TourGuideService : ITourGuideService
 
     public void AddUser(User user)
     {
-        if (!_internalUserMap.ContainsKey(user.UserName))
-        {
-            _internalUserMap.Add(user.UserName, user);
-        }
+        _internalUserMap.TryAdd(user.UserName, user);
     }
 
     public List<Provider> GetTripDeals(User user)
@@ -146,7 +144,7 @@ public class TourGuideService : ITourGuideService
             var userName = $"internalUser{i}";
             var user = new User(Guid.NewGuid(), userName, "000", $"{userName}@tourGuide.com");
             GenerateUserLocationHistory(user);
-            _internalUserMap.Add(userName, user);
+            _internalUserMap.TryAdd(userName, user);
         }
 
         _logger.LogDebug($"Created {InternalTestHelper.GetInternalUserNumber()} internal test users.");
