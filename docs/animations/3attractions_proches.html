@@ -1,0 +1,399 @@
+<title>Les attractions proches</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Trois lecteurs pas à pas : le classement, le DTO, la mise en parallèle. */
+:root{
+  --bg:#FAF8F5; --surface:#FFFFFF; --sunk:#F3F0EA;
+  --fg:#211F1C; --muted:#6B6560; --line:#DDD7CF;
+  --tur:#0F6E56; --tur-f:#E3F3EC; --tur-t:#084736;
+  --amb:#8A5206; --amb-f:#FBEEDC; --amb-t:#5C3604;
+  --rou:#A32D2D; --rou-f:#FBEAEA; --rou-t:#6E1C1C;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0}
+.page{max-width:980px;margin:0 auto;padding:0 16px;padding-block:32px 56px}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:600;line-height:1.15;margin:0 0 8px;text-wrap:balance;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:17px;line-height:1.6;margin:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h2{font-size:22px;font-weight:600;margin:52px 0 6px;letter-spacing:-.01em}
+h2 .num{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:10px}
+h3{font-size:19px;font-weight:600;margin:40px 0 10px}
+p{line-height:1.65;max-width:64ch}
+code{font-family:var(--mono);font-size:.92em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+.player{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+button{font-family:var(--sans);font-size:14px;font-weight:500;padding:8px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--tur);outline-offset:2px}
+button:disabled{opacity:.38;cursor:default}
+button.lead{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.count{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cap{padding:16px;border-left:4px solid var(--tur);margin:16px;background:var(--sunk);font-size:15px;line-height:1.6;min-height:92px}
+.cap b{font-weight:600}
+.stage{padding:0 16px 20px}
+svg{width:100%;height:auto;display:block}
+.bx{opacity:.26;transition:opacity .32s}
+.bx.on{opacity:1}
+.bx.on rect{stroke-width:2.2}
+.lk{opacity:0;transition:opacity .38s}
+.lk.on{opacity:1}
+.fade{transition:opacity .4s}
+.hid{opacity:0}
+.cur{transition:cx .55s cubic-bezier(.4,0,.2,1),fill .3s}
+.gb{transition:x .5s cubic-bezier(.4,0,.2,1),width .5s cubic-bezier(.4,0,.2,1),opacity .4s}
+.mk{transition:x1 .5s,x2 .5s,opacity .4s}
+.err,.okb{opacity:0;transition:opacity .3s}
+.err.on,.okb.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.bx,.lk,.fade,.cur,.gb,.mk,.err,.okb{transition:none}}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.key{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--surface)}
+.key h4{font-size:14px;font-weight:600;margin:0 0 6px}
+.key p{font-size:14px;color:var(--muted);margin:0;line-height:1.55}
+.trace{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin-top:14px}
+.trace .ok{color:var(--tur);font-weight:500}
+table{border-collapse:collapse;margin-top:16px;font-size:14px;width:100%}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted)}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+/* references */
+.ref{margin:14px 0 18px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--amb);border-radius:8px;background:var(--surface);font-size:14px;line-height:1.55;max-width:72ch}
+.ref-t{margin:0 0 6px;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ref ul{margin:0;padding-left:18px}
+.ref li{margin:2px 0}
+.cap{display:none}
+</style>
+
+<div class="page">
+
+<p class="eyebrow">Animation 3 · Tâche 2</p>
+<h1>Les cinq attractions les plus proches</h1>
+<!-- references -->
+<div class="ref"><p class="ref-t">À quoi se réfère cette animation</p><ul>
+<li><b>Tâche 2</b> : renvoyer les 5 attractions les plus proches, avec 5 informations pour chacune</li>
+<li><b>TODO</b> : <code>Api/Controllers/TourGuideController.cs</code>, ligne 28<br/>au-dessus de la méthode <code>GetNearbyAttractions</code></li>
+<li><b>Test concerné</b> : <code>GetNearbyAttractions</code>, fichier <code>TourGuideTest/TourGuideServiceTest.cs</code>, ligne 90</li>
+<li><b>Code écrit</b> :<br/>- <code>TourGuideService.GetNearByAttractions</code><br/>- <code>TourGuideService.GetNearbyAttractionDtos</code><br/>- <code>Api/Dtos/NearbyAttractionDto.cs</code></li>
+</ul></div>
+<!-- /references -->
+
+<!-- ============================== LECTEUR A ============================== -->
+<h2><span class="num">01</span>Un classement à la place d'un filtre</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-a="play" class="lead">Lancer</button>
+    <button data-a="prev">Précédent</button>
+    <button data-a="next">Suivant</button>
+    <button data-a="rst">Début</button>
+    <span class="count" data-a="cnt">étape 1 / 6</span>
+  </div>
+  <div class="cap" data-a="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 520" role="img" aria-label="Animation du classement : le filtre à 200 miles rejette les 26 attractions, le classement par distance garde les 5 plus proches.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LE CODE</text>
+<text x="384" y="30" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">GpsUtil.GetAttractions — LES 26 ATTRACTIONS</text>
+<line x1="368" y1="40" x2="368" y2="392" stroke="var(--line)" stroke-width="1"/>
+
+<g class="bx" data-a="L1"><rect x="24" y="48" width="330" height="56" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="66" font-size="11" fill="var(--tur)" font-family="var(--sans)">TourGuideController.cs · la requête</text><text x="38" y="88" font-size="11.5" font-family="var(--mono)" fill="var(--tur-t)">getNearbyAttractions?userName=internalUser0</text></g>
+
+<g class="bx" data-a="L2"><rect x="24" y="114" width="330" height="72" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="132" font-size="11" fill="var(--tur)" font-family="var(--sans)">TourGuideService.GetUserLocation · sa position</text><text x="38" y="154" font-size="12" font-family="var(--mono)" fill="var(--tur-t)">latitude 57,03 · longitude 7,83</text><text x="38" y="174" font-size="11" font-family="var(--sans)" fill="var(--tur)">en mer du Nord, au large du Danemark</text></g>
+
+<g class="bx" data-a="L3"><rect x="24" y="196" width="330" height="88" rx="8" fill="var(--rou-f)" stroke="var(--rou)" stroke-width="1"/><text x="38" y="214" font-size="11" fill="var(--rou)" font-family="var(--sans)">TourGuideService.cs · ANCIEN CODE, un filtre</text><text x="38" y="236" font-size="11" font-family="var(--mono)" fill="var(--rou-t)">foreach (var attraction in ...)</text><text x="38" y="254" font-size="11" font-family="var(--mono)" fill="var(--rou-t)">  if (IsWithinAttractionProximity(...))</text><text x="38" y="274" font-size="11" font-family="var(--sans)" fill="var(--rou)">garde si distance ≤ 200 miles</text></g>
+
+<g class="bx" data-a="L4"><rect x="24" y="294" width="330" height="96" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="312" font-size="11" fill="var(--tur)" font-family="var(--sans)">TourGuideService.cs · NOUVEAU CODE, un classement</text><text x="38" y="334" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">.OrderBy(a =&gt; GetDistance(a, position))</text><text x="38" y="352" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">.Take(NombreAttractionsProches)</text><text x="38" y="378" font-size="11" font-family="var(--sans)" fill="var(--tur)" data-a="note4">on ne rejette plus, on classe</text></g>
+
+<g data-a="rows"></g>
+
+<text x="24" y="424" font-size="13" font-family="var(--mono)" fill="var(--fg)" data-a="res">liste renvoyée : pas encore calculée</text>
+
+<line x1="60" y1="452" x2="760" y2="452" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-a="cur" cx="60" cy="452" r="7" fill="var(--tur)"/>
+<g class="err" data-a="err"><rect x="150" y="474" width="520" height="32" rx="7" fill="var(--rou)"/><text x="170" y="495" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)">Assert.Equal() Failure · Expected: 5 · Actual: 0</text></g>
+<g class="okb" data-a="okb"><rect x="150" y="474" width="520" height="32" rx="7" fill="var(--tur)"/><text x="170" y="495" font-size="12.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)">TourGuideServiceTour.GetNearbyAttractions · réussi</text></g>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== LECTEUR B ============================== -->
+<h2><span class="num">02</span>Une classe faite pour le transport</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-b="play" class="lead">Lancer</button>
+    <button data-b="prev">Précédent</button>
+    <button data-b="next">Suivant</button>
+    <button data-b="rst">Début</button>
+    <span class="count" data-b="cnt">étape 1 / 7</span>
+  </div>
+  <div class="cap" data-b="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 500" role="img" aria-label="Animation de la construction du DTO : quatre sources remplissent les sept propriétés de NearbyAttractionDto.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">LES QUATRE SOURCES</text>
+<text x="470" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LE DTO EN CONSTRUCTION</text>
+
+<g class="bx" data-b="S1"><rect x="24" y="46" width="330" height="70" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="64" font-size="11" fill="var(--amb)" font-family="var(--sans)">GpsUtil · l'objet Attraction</text><text x="38" y="86" font-size="12" font-family="var(--mono)" fill="var(--amb-t)">"Franklin Park Zoo"</text><text x="38" y="104" font-size="11.5" font-family="var(--mono)" fill="var(--amb-t)">latitude 42,30 · longitude -71,09</text></g>
+
+<g class="bx" data-b="S2"><rect x="24" y="126" width="330" height="70" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="144" font-size="11" fill="var(--amb)" font-family="var(--sans)">TourGuideService.GetUserLocation · l'utilisateur</text><text x="38" y="166" font-size="12" font-family="var(--mono)" fill="var(--amb-t)">visitedLocation.Location</text><text x="38" y="184" font-size="11.5" font-family="var(--mono)" fill="var(--amb-t)">latitude 57,03 · longitude 7,83</text></g>
+
+<g class="bx" data-b="S3"><rect x="24" y="206" width="330" height="70" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="224" font-size="11" fill="var(--amb)" font-family="var(--sans)">RewardsService.GetDistance · un calcul</text><text x="38" y="246" font-size="12" font-family="var(--mono)" fill="var(--amb-t)">GetDistance(attraction, position)</text><text x="38" y="264" font-size="11.5" font-family="var(--sans)" fill="var(--amb)">trigonométrie, instantané</text></g>
+
+<g class="bx" data-b="S4"><rect x="24" y="286" width="330" height="70" rx="8" fill="var(--rou-f)" stroke="var(--rou)" stroke-width="1"/><text x="38" y="304" font-size="11" fill="var(--rou)" font-family="var(--sans)">RewardCentral · service externe, LENT</text><text x="38" y="326" font-size="12" font-family="var(--mono)" fill="var(--rou-t)">GetAttractionRewardPoints(...)</text><text x="38" y="344" font-size="11.5" font-family="var(--sans)" fill="var(--rou)" data-b="wait">Thread.Sleep de 1 à 999 ms</text></g>
+
+<path class="lk" data-b="lk1" d="M356 81 H462" fill="none" stroke="var(--amb)" stroke-width="2.4"/><path class="lk" data-b="lk1h" d="M462 75 L470 81 L462 87 Z" fill="var(--amb)"/>
+<path class="lk" data-b="lk2" d="M356 161 H462" fill="none" stroke="var(--amb)" stroke-width="2.4"/><path class="lk" data-b="lk2h" d="M462 155 L470 161 L462 167 Z" fill="var(--amb)"/>
+<path class="lk" data-b="lk3" d="M356 241 H462" fill="none" stroke="var(--amb)" stroke-width="2.4"/><path class="lk" data-b="lk3h" d="M462 235 L470 241 L462 247 Z" fill="var(--amb)"/>
+<path class="lk" data-b="lk4" d="M356 321 H462" fill="none" stroke="var(--rou)" stroke-width="2.4"/><path class="lk" data-b="lk4h" d="M462 315 L470 321 L462 327 Z" fill="var(--rou)"/>
+
+<g class="bx on" data-b="D"><rect x="470" y="46" width="326" height="310" rx="10" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1.6"/><text x="486" y="66" font-size="11" fill="var(--tur)" font-family="var(--sans)">Dtos/NearbyAttractionDto.cs · propriétés init</text></g>
+<g data-b="fields"></g>
+
+<g class="fade hid" data-b="json"><rect x="24" y="378" width="772" height="80" rx="8" fill="var(--sunk)" stroke="var(--line)" stroke-width="1"/><text x="40" y="400" font-size="11" fill="var(--muted)" font-family="var(--sans)">la réponse JSON, une entrée sur cinq</text><text x="40" y="422" font-size="11.5" font-family="var(--mono)" fill="var(--fg)">{ "attractionName": "Franklin Park Zoo", "attractionLatitude": 42.302601, "attractionLongitude": -71.086731,</text><text x="40" y="442" font-size="11.5" font-family="var(--mono)" fill="var(--fg)">  "userLatitude": 57.0256, "userLongitude": 7.8251, "distanceInMiles": 3456.18, "rewardPoints": 50 }</text></g>
+
+<line x1="60" y1="476" x2="760" y2="476" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-b="cur" cx="60" cy="476" r="7" fill="var(--tur)"/>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== LECTEUR C ============================== -->
+<h2><span class="num">03</span>Lancer les cinq appels lents en même temps</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-c="play" class="lead">Lancer</button>
+    <button data-c="prev">Précédent</button>
+    <button data-c="next">Suivant</button>
+    <button data-c="rst">Début</button>
+    <span class="count" data-c="cnt">étape 1 / 7</span>
+  </div>
+  <div class="cap" data-c="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 450" role="img" aria-label="Animation de la mise en parallèle : les cinq appels à RewardCentral passent de la somme de leurs durées à la durée du plus lent, avec une attente due au pool de threads.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)" data-c="mode">MODE : SÉQUENTIEL</text>
+<g data-c="axis"></g>
+<g data-c="lanes"></g>
+<line class="mk" data-c="tot" x1="182" y1="50" x2="182" y2="252" stroke="var(--rou)" stroke-width="2"/>
+<text class="fade" data-c="totl" x="150" y="44" font-size="12" font-weight="600" fill="var(--rou)" font-family="var(--mono)" text-anchor="middle"></text>
+
+<text x="24" y="300" font-size="11" fill="var(--muted)" font-family="var(--sans)">LE POOL DE THREADS DE .NET</text>
+<text x="24" y="318" font-size="11" fill="var(--muted)" font-family="var(--sans)" data-c="poolt">réserve de départ : 4 threads, autant que de processeurs</text>
+<g data-c="pool"></g>
+
+<line x1="60" y1="420" x2="760" y2="420" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-c="cur" cx="60" cy="420" r="7" fill="var(--tur)"/>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== BILAN ============================== -->
+<h2><span class="num">04</span>Le bilan mesuré</h2>
+
+<table>
+<tr><th>Version de getNearbyAttractions</th><th>Moyenne mesurée</th><th>Ce qui limite</th></tr>
+<tr><td>appels l'un après l'autre</td><td class="num">2 859 ms</td><td>la somme des 5 attentes</td></tr>
+<tr><td>appels en parallèle, réserve de 4 threads</td><td class="num">1 123 à 1 785 ms</td><td>le 5e appel attend qu'un thread soit ajouté</td></tr>
+</table>
+
+
+<h3>L'état des tests</h3>
+<div class="trace">Réussi!  - échec :     0, réussite :     <span class="ok">9</span>, ignorée(s) :     2, total :    11</div>
+
+<footer>Projet 8 · Améliorez votre application avec des systèmes distribués · document de travail</footer>
+</div>
+
+<script>
+(function(){
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e}
+function fr(n){return Math.round(n).toLocaleString("fr-FR")}
+
+/* Cadre commun : boutons, légende, compteur, curseur. */
+function player(k,S,draw){
+  var q=function(n){return document.querySelector('[data-'+k+'="'+n+'"]')};
+  var i=0,tm=null;
+  function render(){
+    var s=S[i];
+    var c=s.e?"var(--rou)":(s.amb?"var(--amb)":"var(--tur)");
+    draw(s,q);
+    q("cap").innerHTML=s.c;
+    q("cap").style.borderLeftColor=c;
+    q("cnt").textContent="étape "+(i+1)+" / "+S.length;
+    q("prev").disabled=i===0;q("next").disabled=i===S.length-1;
+    var cur=q("cur");cur.setAttribute("cx",60+s.t/100*700);cur.setAttribute("fill",c);
+  }
+  function stop(){if(tm){clearInterval(tm);tm=null}q("play").textContent="Lancer"}
+  q("play").onclick=function(){
+    if(tm){stop();return}
+    if(i===S.length-1){i=0}
+    q("play").textContent="Pause";
+    tm=setInterval(function(){if(i<S.length-1){i++;render()}else{stop()}},3200);
+    render();
+  };
+  q("next").onclick=function(){stop();if(i<S.length-1){i++;render()}};
+  q("prev").onclick=function(){stop();if(i>0){i--;render()}};
+  q("rst").onclick=function(){stop();i=0;render()};
+  return {q:q,render:render};
+}
+
+/* ---------------- Lecteur A : filtre contre classement ---------------- */
+var ATT=[["Disneyland",5407],["Jackson Hole",4632],["Mojave Nat. Preserve",5262],["Joshua Tree Nat. Park",5350],["Buffalo Nat. River",4534],["Hot Springs Nat. Park",4625],["Kartchner Caverns",5320],["Legend Valley",3972],["Flowers Bakery London",4179],["McKinley Tower",4175],["Flatiron Building",3638],["Fallingwater",3873],["Union Station",3839],["Roger Dean Stadium",4600],["Texas Memorial Stadium",5021],["Bryant-Denny Stadium",4513],["Tiger Stadium",4795],["Neyland Stadium",4238],["Kyle Field",4957],["San Diego Zoo",5453],["Zoo Tampa",4623],["Franklin Park Zoo",3456],["El Paso Zoo",5208],["Kansas City Zoo",4423],["Bronx Zoo",3628],["Cinderella Castle",4568]];
+var SRC=ATT.map(function(_,i){return i});
+var SORTED=SRC.slice().sort(function(a,b){return ATT[a][1]-ATT[b][1]});
+var rowsG=document.querySelector('[data-a="rows"]'),ROWS=[];
+for(var j=0;j<26;j++){
+  var col=j<13?0:1,r=j%13,x=384+col*212,y=48+r*26;
+  var g=el("g",{},rowsG);
+  var rc=el("rect",{x:x,y:y,width:200,height:22,rx:4},g);
+  var tn=el("text",{x:x+8,y:y+15,"font-size":"10.5","font-family":"var(--sans)"},g,"");
+  var td=el("text",{x:x+192,y:y+15,"font-size":"10.5","font-family":"var(--mono)","text-anchor":"end"},g,"");
+  ROWS.push({g:g,rc:rc,tn:tn,td:td});
+}
+function paintRow(R,kind){
+  var f={neu:["var(--sunk)","var(--line)","var(--fg)"],rej:["var(--rou-f)","var(--rou)","var(--rou-t)"],top:["var(--tur-f)","var(--tur)","var(--tur-t)"],dim:["var(--sunk)","var(--line)","var(--muted)"]}[kind];
+  R.rc.setAttribute("fill",f[0]);R.rc.setAttribute("stroke",f[1]);R.rc.setAttribute("stroke-width",kind==="top"?"1.6":"1");
+  R.tn.setAttribute("fill",f[2]);R.td.setAttribute("fill",f[2]);
+  R.tn.setAttribute("font-weight",kind==="top"?"600":"400");
+  R.g.setAttribute("opacity",kind==="dim"?"0.45":"1");
+}
+player("a",[
+{c:"",on:["L1","L2"],order:"src",dist:0,rows:"neu",res:"liste renvoyée : pas encore calculée",t:0},
+{c:"",on:["L3"],e:1,order:"src",dist:5,rows:"rej5",res:"liste renvoyée : en cours de filtrage",t:18},
+{c:"",on:["L3"],e:1,order:"src",dist:26,rows:"rejall",res:"liste renvoyée : 0 attraction",t:34,err:1},
+{c:"",on:["L4"],order:"src",dist:26,rows:"neu",res:"liste renvoyée : en cours de classement",t:55,n4:"26 distances calculées"},
+{c:"",on:["L4"],order:"sorted",dist:26,rows:"neu",res:"liste renvoyée : en cours de classement",t:72,n4:"classées par distance croissante"},
+{c:"",on:["L4"],order:"sorted",dist:26,rows:"top5",res:"liste renvoyée : 5 attractions",t:100,n4:"les 5 premières gardées",ok:1}
+],function(s,q){
+  ["L1","L2","L3","L4"].forEach(function(b){q(b).classList.toggle("on",s.on.indexOf(b)>-1)});
+  var order=s.order==="sorted"?SORTED:SRC;
+  for(var j=0;j<26;j++){
+    var a=order[j],R=ROWS[j];
+    R.tn.textContent=ATT[a][0];
+    R.td.textContent=(j<s.dist)?fr(ATT[a][1])+" mi":"";
+    var kind="neu";
+    if(s.rows==="rej5")kind=j<5?"rej":"neu";
+    if(s.rows==="rejall")kind="rej";
+    if(s.rows==="top5")kind=j<5?"top":"dim";
+    paintRow(R,kind);
+  }
+  q("res").textContent=s.res;
+  q("note4").textContent=s.n4||"on ne rejette plus, on classe";
+  q("err").classList.toggle("on",!!s.err);
+  q("okb").classList.toggle("on",!!s.ok);
+}).render();
+
+/* ---------------- Lecteur B : le DTO ---------------- */
+var FIELDS=[["AttractionName","\"Franklin Park Zoo\""],["AttractionLatitude","42.302601"],["AttractionLongitude","-71.086731"],["UserLatitude","57.0256"],["UserLongitude","7.8251"],["DistanceInMiles","3456.18"],["RewardPoints","50"]];
+var fG=document.querySelector('[data-b="fields"]'),FV=[];
+FIELDS.forEach(function(f,i){
+  var y=82+i*38;
+  el("rect",{x:486,y:y,width:294,height:30,rx:5,fill:"var(--surface)",stroke:"var(--line)","stroke-width":"1"},fG);
+  el("text",{x:498,y:y+19,"font-size":"11","font-family":"var(--mono)",fill:"var(--muted)"},fG,f[0]);
+  FV.push(el("text",{x:770,y:y+19,"font-size":"11.5","font-family":"var(--mono)",fill:"var(--tur-t)","font-weight":"600","text-anchor":"end"},fG,""));
+});
+player("b",[
+{c:"",on:["S1"],lk:[],n:0,t:0},
+{c:"",on:["S1"],lk:[1],n:3,t:18,amb:1},
+{c:"",on:["S2"],lk:[2],n:5,t:36,amb:1},
+{c:"",on:["S3"],lk:[3],n:6,t:52,amb:1},
+{c:"",on:["S4"],lk:[4],n:6,t:68,e:1,wait:"en attente de la réponse..."},
+{c:"",on:["S1","S2","S3","S4"],lk:[1,2,3,4],n:7,t:84},
+{c:"",on:["S1","S2","S3","S4"],lk:[],n:7,t:100,json:1}
+],function(s,q){
+  ["S1","S2","S3","S4"].forEach(function(b){q(b).classList.toggle("on",s.on.indexOf(b)>-1)});
+  [1,2,3,4].forEach(function(n){var on=s.lk.indexOf(n)>-1;q("lk"+n).classList.toggle("on",on);q("lk"+n+"h").classList.toggle("on",on)});
+  FV.forEach(function(t,i){t.textContent=i<s.n?FIELDS[i][1]:""});
+  q("wait").textContent=s.wait||"Thread.Sleep de 1 à 999 ms";
+  q("json").classList.toggle("hid",!s.json);
+}).render();
+
+/* ---------------- Lecteur C : séquentiel, parallèle, famine ---------------- */
+var D=[620,780,560,690,640],X0=182,PX=588/3500,LY=[62,100,138,176,214];
+var NOMS=["Franklin Park Zoo","Bronx Zoo","Flatiron Building","Union Station","Fallingwater"];
+var ax=document.querySelector('[data-c="axis"]');
+for(var m=0;m<=3500;m+=500){
+  el("line",{x1:X0+m*PX,y1:52,x2:X0+m*PX,y2:250,stroke:"var(--line)","stroke-width":"1"},ax);
+  el("text",{x:X0+m*PX,y:268,"font-size":"10","font-family":"var(--mono)",fill:"var(--muted)","text-anchor":"middle"},ax,m===0?"0":fr(m)+" ms");
+}
+var ln=document.querySelector('[data-c="lanes"]'),BARS=[],WAIT;
+NOMS.forEach(function(n,i){
+  el("text",{x:24,y:LY[i]+16,"font-size":"10.5","font-family":"var(--sans)",fill:"var(--fg)"},ln,"appel "+(i+1)+" · "+n);
+  BARS.push(el("rect",{"class":"gb",x:X0,y:LY[i],width:0,height:24,rx:4,fill:"var(--amb)"},ln));
+});
+WAIT=el("rect",{"class":"gb",x:X0,y:LY[4],width:0,height:24,rx:4,fill:"none",stroke:"var(--rou)","stroke-width":"1.6","stroke-dasharray":"5 4"},ln);
+var WAITT=el("text",{"class":"fade hid",x:X0+6,y:LY[4]+16,"font-size":"10","font-family":"var(--sans)",fill:"var(--rou)"},ln,"attend un thread");
+var pg=document.querySelector('[data-c="pool"]'),SLOTS=[];
+for(var p=0;p<5;p++){
+  var sx=150+p*112;
+  var sr=el("rect",{x:sx,y:332,width:100,height:34,rx:6},pg);
+  var st=el("text",{x:sx+50,y:353,"font-size":"10.5","font-family":"var(--sans)","text-anchor":"middle"},pg,"");
+  SLOTS.push({r:sr,t:st});
+}
+var EXTRA=el("text",{"class":"fade hid",x:720,y:353,"font-size":"10.5","font-family":"var(--sans)",fill:"var(--tur)"},pg,"+ 45 autres");
+function slot(S,state,label){
+  var f={libre:["var(--sunk)","var(--line)","var(--muted)",""],occ:["var(--amb-f)","var(--amb)","var(--amb-t)",""],att:["none","var(--rou)","var(--rou)","5 4"],abs:["none","none","none",""]}[state];
+  S.r.setAttribute("fill",f[0]);S.r.setAttribute("stroke",f[1]);S.r.setAttribute("stroke-dasharray",f[3]);
+  S.t.setAttribute("fill",f[2]);S.t.textContent=label;
+}
+function plan(mode,shown){
+  var st=[],t=0;
+  for(var i=0;i<5;i++){
+    var s0=mode==="seq"?t:(mode==="fam"&&i===4?500:0);
+    st.push([s0,s0+D[i]]);t+=D[i];
+  }
+  return st;
+}
+player("c",[
+{c:"",mode:"seq",shown:1,tot:null,pool:"seq",t:0,amb:1},
+{c:"",mode:"seq",shown:2,tot:null,pool:"seq",t:14,amb:1},
+{c:"",mode:"seq",shown:5,tot:3290,pool:"seq",t:28,e:1},
+{c:"",mode:"par",shown:5,tot:780,pool:"theo",t:46},
+{c:"",mode:"fam",shown:4,tot:null,pool:"fam1",t:62,e:1,wait:1},
+{c:"",mode:"fam",shown:5,tot:1140,pool:"fam2",t:80,e:1,wait:1},
+{c:"",mode:"par",shown:5,tot:780,pool:"res50",t:100}
+],function(s,q){
+  var P=plan(s.mode);
+  BARS.forEach(function(b,i){
+    var vis=i<s.shown;
+    b.setAttribute("x",X0+P[i][0]*PX);
+    b.setAttribute("width",vis?D[i]*PX:0);
+    b.setAttribute("opacity",vis?"1":"0");
+  });
+  var w=s.wait&&s.mode==="fam";
+  WAIT.setAttribute("x",X0);WAIT.setAttribute("width",w?500*PX:0);WAIT.setAttribute("opacity",w?"1":"0");
+  WAITT.classList.toggle("hid",!w);
+  var tot=q("tot"),tl=q("totl");
+  if(s.tot){var tx=X0+s.tot*PX;tot.setAttribute("x1",tx);tot.setAttribute("x2",tx);tot.setAttribute("opacity","1");tl.setAttribute("x",tx);tl.textContent="total "+fr(s.tot)+" ms";tl.classList.remove("hid")}
+  else{tot.setAttribute("opacity","0");tl.classList.add("hid")}
+  q("mode").textContent={seq:"MODE : SÉQUENTIEL",par:"MODE : PARALLÈLE",fam:"MODE : PARALLÈLE, RÉSERVE DE 4 THREADS"}[s.mode];
+  q("mode").setAttribute("fill",s.mode==="seq"?"var(--amb)":(s.mode==="fam"?"var(--rou)":"var(--tur)"));
+  var pt=q("poolt");
+  if(s.pool==="seq"){pt.textContent="un seul thread travaille, les autres ne servent à rien";slot(SLOTS[0],"occ","thread 1");for(var k=1;k<4;k++)slot(SLOTS[k],"libre","libre");slot(SLOTS[4],"abs","")}
+  if(s.pool==="theo"){pt.textContent="en théorie : un thread par appel";for(var k=0;k<5;k++)slot(SLOTS[k],"occ","thread "+(k+1))}
+  if(s.pool==="fam1"){pt.textContent="réserve de départ : 4 threads, autant que de processeurs";for(var k=0;k<4;k++)slot(SLOTS[k],"occ","thread "+(k+1));slot(SLOTS[4],"att","manquant")}
+  if(s.pool==="fam2"){pt.textContent="un 5e thread est ajouté après environ 500 ms";for(var k=0;k<5;k++)slot(SLOTS[k],"occ","thread "+(k+1))}
+  if(s.pool==="res50"){pt.textContent="réserve de départ fixée à 50 threads";for(var k=0;k<5;k++)slot(SLOTS[k],"occ","thread "+(k+1))}
+  EXTRA.classList.toggle("hid",s.pool!=="res50");
+}).render();
+})();
+</script>

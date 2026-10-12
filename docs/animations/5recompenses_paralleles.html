@@ -1,0 +1,268 @@
+<title>Les récompenses en parallèle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Deux lecteurs pas à pas : le calcul des récompenses, puis la progression mesurée. */
+:root{
+  --bg:#FAF8F5; --surface:#FFFFFF; --sunk:#F3F0EA;
+  --fg:#211F1C; --muted:#6B6560; --line:#DDD7CF;
+  --tur:#0F6E56; --tur-f:#E3F3EC; --tur-t:#084736;
+  --amb:#8A5206; --amb-f:#FBEEDC; --amb-t:#5C3604;
+  --rou:#A32D2D; --rou-f:#FBEAEA; --rou-t:#6E1C1C;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0}
+.page{max-width:980px;margin:0 auto;padding:0 16px;padding-block:32px 56px}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:600;line-height:1.15;margin:0 0 8px;text-wrap:balance;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:17px;line-height:1.6;margin:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h2{font-size:22px;font-weight:600;margin:52px 0 6px;letter-spacing:-.01em}
+h2 .num{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:10px}
+h3{font-size:19px;font-weight:600;margin:40px 0 10px}
+p{line-height:1.65;max-width:64ch}
+code{font-family:var(--mono);font-size:.92em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+.player{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+button{font-family:var(--sans);font-size:14px;font-weight:500;padding:8px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--tur);outline-offset:2px}
+button:disabled{opacity:.38;cursor:default}
+button.lead{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.count{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cap{padding:16px;border-left:4px solid var(--tur);margin:16px;background:var(--sunk);font-size:15px;line-height:1.6;min-height:92px}
+.cap b{font-weight:600}
+.stage{padding:0 16px 20px}
+svg{width:100%;height:auto;display:block}
+.bx{opacity:.26;transition:opacity .32s}
+.bx.on{opacity:1}
+.bx.on rect{stroke-width:2.2}
+.fade{transition:opacity .4s}
+.hid{opacity:0}
+.cur{transition:cx .55s cubic-bezier(.4,0,.2,1),fill .3s}
+.gb{transition:width .6s cubic-bezier(.4,0,.2,1),opacity .4s}
+.err,.okb{opacity:0;transition:opacity .3s}
+.err.on,.okb.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.bx,.fade,.cur,.gb,.err,.okb{transition:none}}
+.trace{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin-top:14px}
+.trace .ok{color:var(--tur);font-weight:500}
+table{border-collapse:collapse;margin-top:16px;font-size:14px;width:100%}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+/* references */
+.ref{margin:14px 0 18px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--amb);border-radius:8px;background:var(--surface);font-size:14px;line-height:1.55;max-width:72ch}
+.ref-t{margin:0 0 6px;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ref ul{margin:0;padding-left:18px}
+.ref li{margin:2px 0}
+.cap{display:none}
+</style>
+
+<div class="page">
+
+<p class="eyebrow">Animation 5 · Tâche 4</p>
+<h1>Calculer les récompenses de 100 000 utilisateurs</h1>
+<!-- references -->
+<div class="ref"><p class="ref-t">À quoi se réfère cette animation</p><ul>
+<li><b>Tâche 4</b> : calculer les récompenses de 100 000 utilisateurs en moins de 20 minutes</li>
+<li><b>Test concerné</b> : <code>HighVolumeGetRewards</code>, fichier <code>TourGuideTest/PerformanceTest.cs</code>, ligne 78</li>
+<li><b>Code écrit</b> :<br/>- <code>RewardsService.CalculateAllUsersRewards</code><br/>- <code>IRewardsService</code>, la déclaration</li>
+</ul></div>
+<!-- /references -->
+
+<!-- ============================== LECTEUR A ============================== -->
+<h2><span class="num">01</span>Un utilisateur après l'autre, puis cent à la fois</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-a="play" class="lead">Lancer</button>
+    <button data-a="prev">Précédent</button>
+    <button data-a="next">Suivant</button>
+    <button data-a="rst">Début</button>
+    <span class="count" data-a="cnt">étape 1 / 5</span>
+  </div>
+  <div class="cap" data-a="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 430" role="img" aria-label="Animation du calcul des récompenses : un utilisateur à la fois, puis cent à la fois.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LE CODE</text>
+<text x="280" y="30" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">LES THREADS AU TRAVAIL</text>
+<text x="596" y="30" font-size="13" font-weight="600" fill="var(--rou)" font-family="var(--sans)">LE BILAN</text>
+
+<g class="bx" data-a="L1"><rect x="24" y="48" width="236" height="86" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="66" font-size="11" fill="var(--tur)" font-family="var(--sans)">PerformanceTest.cs · le test</text><text x="38" y="88" font-size="11.5" font-family="var(--mono)" fill="var(--tur-t)">HighVolumeGetRewards()</text><text x="38" y="110" font-size="10.5" font-family="var(--mono)" fill="var(--tur-t)" data-a="boucle">allUsers.ForEach(... CalculateRewards)</text><text x="38" y="126" font-size="11" font-family="var(--sans)" fill="var(--tur)">100 000 utilisateurs, placés sur Disneyland</text></g>
+
+<g class="bx" data-a="L2"><rect x="24" y="146" width="236" height="100" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="164" font-size="11" fill="var(--amb)" font-family="var(--sans)">RewardsService.CalculateRewards</text><text x="38" y="184" font-size="11.5" font-family="var(--mono)" fill="var(--amb-t)">plus de 0,5 s par utilisateur</text>
+<rect x="38" y="196" width="190" height="18" rx="3" fill="var(--amb)"/><rect x="228" y="196" width="10" height="18" rx="2" fill="var(--amb)" opacity=".5"/>
+<text x="42" y="209" font-size="10" fill="var(--amb-f)" font-family="var(--sans)">RewardCentral : 1 à 999 ms</text>
+<text x="38" y="232" font-size="10" fill="var(--amb)" font-family="var(--sans)">+ GpsUtil.GetAttractions 10 ms</text></g>
+
+<g class="bx" data-a="L3"><rect x="24" y="258" width="236" height="78" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="276" font-size="11" fill="var(--tur)" font-family="var(--sans)">RewardsService.cs · la nouvelle méthode</text><text x="38" y="298" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">CalculateAllUsersRewards(users)</text><text x="38" y="316" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">Parallel.ForEach, 100 à la fois</text></g>
+
+<line x1="270" y1="40" x2="270" y2="336" stroke="var(--line)" stroke-width="1"/>
+<g data-a="grid"></g>
+<line x1="582" y1="40" x2="582" y2="336" stroke="var(--line)" stroke-width="1"/>
+
+<rect x="596" y="48" width="200" height="66" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="610" y="66" font-size="11" fill="var(--muted)" font-family="var(--sans)">utilisateurs par seconde</text><text x="610" y="98" font-size="22" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-a="debit">—</text>
+<rect x="596" y="124" width="200" height="66" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="610" y="142" font-size="11" fill="var(--muted)" font-family="var(--sans)">durée pour 100 000</text><text x="610" y="174" font-size="22" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-a="proj">—</text>
+<rect x="596" y="200" width="200" height="66" rx="8" fill="var(--tur-f)" stroke="var(--tur)"/><text x="610" y="218" font-size="11" fill="var(--tur)" font-family="var(--sans)">objectif de la tâche 4</text><text x="610" y="250" font-size="22" font-weight="600" fill="var(--tur-t)" font-family="var(--mono)">20 min</text>
+
+<line x1="60" y1="362" x2="760" y2="362" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-a="cur" cx="60" cy="362" r="7" fill="var(--tur)"/>
+<g class="err" data-a="err"><rect x="150" y="384" width="520" height="32" rx="7" fill="var(--rou)"/><text x="170" y="405" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)">près de 18 heures pour 20 minutes autorisées</text></g>
+<g class="okb" data-a="okb"><rect x="150" y="384" width="520" height="32" rx="7" fill="var(--tur)"/><text x="170" y="405" font-size="12.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)">597 s mesurées : deux fois moins que les 20 min autorisées</text></g>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== LECTEUR B ============================== -->
+<h2><span class="num">02</span>La progression mesurée</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-b="play" class="lead">Lancer</button>
+    <button data-b="prev">Précédent</button>
+    <button data-b="next">Suivant</button>
+    <button data-b="rst">Début</button>
+    <span class="count" data-b="cnt">étape 1 / 5</span>
+  </div>
+  <div class="cap" data-b="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 420" role="img" aria-label="Animation de la progression : temps d'origine et temps amélioré pour 100, 1 000, 10 000 et 100 000 utilisateurs, sur une échelle logarithmique.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LE TABLEUR DE PERFORMANCE · FEUILLE REWARDS</text>
+<rect x="24" y="44" width="12" height="12" rx="2" fill="var(--amb)"/><text x="42" y="54" font-size="11" fill="var(--fg)" font-family="var(--sans)">temps d'origine, fourni</text>
+<rect x="200" y="44" width="12" height="12" rx="2" fill="var(--tur)"/><text x="218" y="54" font-size="11" fill="var(--fg)" font-family="var(--sans)">temps amélioré, mesuré par le test</text>
+<g data-b="axe"></g>
+<g data-b="rows"></g>
+<text x="170" y="388" font-size="11" fill="var(--muted)" font-family="var(--sans)">échelle logarithmique : chaque graduation vaut dix fois la précédente</text>
+<line x1="60" y1="404" x2="760" y2="404" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-b="cur" cx="60" cy="404" r="7" fill="var(--tur)"/>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== LA CORRECTION ============================== -->
+<h2><span class="num">03</span>La correction</h2>
+
+<table>
+<tr><th></th><th>Avant</th><th>Après</th></tr>
+<tr><td>le calcul</td><td><code>CalculateRewards</code>, un utilisateur après l'autre</td><td><code>CalculateAllUsersRewards</code>, 100 à la fois</td></tr>
+<tr><td>la réserve de threads</td><td>4 threads au départ</td><td><code>ThreadPool.SetMinThreads(100, 100)</code></td></tr>
+<tr><td>le test</td><td>en <code>Skip</code></td><td>activé, avec 100 000 utilisateurs</td></tr>
+</table>
+
+<div class="trace" style="white-space:pre">public void CalculateAllUsersRewards(List&lt;User&gt; users)
+{
+    var options = new ParallelOptions { MaxDegreeOfParallelism = NombreCalculsSimultanes };
+    Parallel.ForEach(users, options, user =&gt; CalculateRewards(user));
+}</div>
+
+
+<h3>L'état des tests</h3>
+<div class="trace">Réussi!  - échec :     0, réussite :     <span class="ok">11</span>, ignorée(s) :     0, total :    11</div>
+
+<footer>Projet 8 · Améliorez votre application avec des systèmes distribués · document de travail</footer>
+</div>
+
+<script>
+(function(){
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e}
+
+function player(k,S,draw){
+  var q=function(n){return document.querySelector('[data-'+k+'="'+n+'"]')};
+  var i=0,tm=null;
+  function render(){
+    var s=S[i];
+    var c=s.e?"var(--rou)":(s.amb?"var(--amb)":"var(--tur)");
+    draw(s,q);
+    q("cap").innerHTML=s.c;
+    q("cap").style.borderLeftColor=c;
+    q("cnt").textContent="étape "+(i+1)+" / "+S.length;
+    q("prev").disabled=i===0;q("next").disabled=i===S.length-1;
+    var cur=q("cur");cur.setAttribute("cx",60+s.t/100*700);cur.setAttribute("fill",c);
+  }
+  function stop(){if(tm){clearInterval(tm);tm=null}q("play").textContent="Lancer"}
+  q("play").onclick=function(){
+    if(tm){stop();return}
+    if(i===S.length-1){i=0}
+    q("play").textContent="Pause";
+    tm=setInterval(function(){if(i<S.length-1){i++;render()}else{stop()}},3200);
+    render();
+  };
+  q("next").onclick=function(){stop();if(i<S.length-1){i++;render()}};
+  q("prev").onclick=function(){stop();if(i>0){i--;render()}};
+  q("rst").onclick=function(){stop();i=0;render()};
+  return {render:render};
+}
+
+/* ---------------- Lecteur A : un à la fois, puis cent à la fois ---------------- */
+var gA=document.querySelector('[data-a="grid"]'),casesA=[];
+for(var r=0;r<10;r++)for(var c=0;c<10;c++)casesA.push(el("rect",{x:290+c*27,y:56+r*27,width:22,height:22,rx:3},gA));
+var legA=el("text",{x:290,y:332,"font-size":"11","font-family":"var(--sans)",fill:"var(--amb)"},gA,"");
+function peindre(n){casesA.forEach(function(r,i){r.setAttribute("fill",i<n?"var(--amb)":"var(--sunk)");r.setAttribute("stroke",i<n?"var(--amb)":"var(--line)")})}
+player("a",[
+{c:"",on:["L1"],n:1,par:0,debit:"—",proj:"—",t:0},
+{c:"",on:["L2"],n:1,par:0,debit:"—",proj:"—",t:22,amb:1},
+{c:"",on:["L1","L2"],n:1,par:0,debit:"1,6",proj:"64 020 s",t:44,e:1,err:1},
+{c:"",on:["L3"],n:100,par:1,debit:"—",proj:"—",t:72},
+{c:"",on:["L3"],n:100,par:1,debit:"167",proj:"597 s",t:100,ok:1}
+],function(s,q){
+  ["L1","L2","L3"].forEach(function(b){q(b).classList.toggle("on",s.on.indexOf(b)>-1)});
+  peindre(s.n);
+  legA.textContent=s.n>1?"100 threads travaillent en même temps":"1 seul thread travaille";
+  q("boucle").textContent=s.par?"CalculateAllUsersRewards(allUsers)":"allUsers.ForEach(... CalculateRewards)";
+  q("debit").textContent=s.debit;q("proj").textContent=s.proj;
+  q("err").classList.toggle("on",!!s.err);q("okb").classList.toggle("on",!!s.ok);
+}).render();
+
+/* ---------------- Lecteur B : la progression, échelle logarithmique ---------------- */
+var DATA=[["100 utilisateurs",44,1.70],["1 000 utilisateurs",472,11.51],["10 000 utilisateurs",5820,94.20],["100 000 utilisateurs",64020,597.32]];
+var X0=170,DEC=118,LY=[86,156,226,296];
+function lx(t){return X0+Math.log10(Math.max(t,1))*DEC}
+function fr(n){return Number(n).toLocaleString("fr-FR",{maximumFractionDigits:2})}
+var ax=document.querySelector('[data-b="axe"]');
+[1,10,100,1000,10000,100000].forEach(function(t){
+  el("line",{x1:lx(t),y1:72,x2:lx(t),y2:350,stroke:"var(--line)","stroke-width":"1"},ax);
+  el("text",{x:lx(t),y:368,"font-size":"10","font-family":"var(--mono)",fill:"var(--muted)","text-anchor":"middle"},ax,fr(t)+" s");
+});
+var xo=lx(1200);
+el("line",{x1:xo,y1:68,x2:xo,y2:350,stroke:"var(--rou)","stroke-width":"1.6","stroke-dasharray":"5 4"},ax);
+el("text",{x:xo+6,y:80,"font-size":"10.5","font-family":"var(--sans)",fill:"var(--rou)"},ax,"objectif : 20 min");
+var rowsG=document.querySelector('[data-b="rows"]'),ROWS=[];
+DATA.forEach(function(d,i){
+  var y=LY[i],g=el("g",{"class":"fade hid"},rowsG);
+  el("text",{x:24,y:y+22,"font-size":"11.5","font-weight":"600","font-family":"var(--sans)",fill:"var(--fg)"},g,d[0]);
+  el("rect",{x:X0,y:y,width:lx(d[1])-X0,height:18,rx:3,fill:"var(--amb)"},g);
+  el("text",{x:lx(d[1])+6,y:y+14,"font-size":"10.5","font-family":"var(--mono)",fill:"var(--amb)"},g,fr(d[1])+" s");
+  el("rect",{x:X0,y:y+24,width:lx(d[2])-X0,height:18,rx:3,fill:"var(--tur)"},g);
+  el("text",{x:lx(d[2])+6,y:y+38,"font-size":"10.5","font-family":"var(--mono)",fill:"var(--tur)"},g,fr(d[2])+" s");
+  ROWS.push(g);
+});
+player("b",[
+{c:"",k:1,t:0},
+{c:"",k:2,t:25},
+{c:"",k:3,t:50},
+{c:"",k:4,t:75,ok:1},
+{c:"",k:4,t:100}
+],function(s,q){
+  ROWS.forEach(function(g,i){g.classList.toggle("hid",i>=s.k)});
+}).render();
+})();
+</script>

@@ -1,0 +1,359 @@
+<title>Le suivi en parallèle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Trois lecteurs pas à pas : le calcul, la réserve de threads, les 100 000 utilisateurs. */
+:root{
+  --bg:#FAF8F5; --surface:#FFFFFF; --sunk:#F3F0EA;
+  --fg:#211F1C; --muted:#6B6560; --line:#DDD7CF;
+  --tur:#0F6E56; --tur-f:#E3F3EC; --tur-t:#084736;
+  --amb:#8A5206; --amb-f:#FBEEDC; --amb-t:#5C3604;
+  --rou:#A32D2D; --rou-f:#FBEAEA; --rou-t:#6E1C1C;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0}
+.page{max-width:980px;margin:0 auto;padding:0 16px;padding-block:32px 56px}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:600;line-height:1.15;margin:0 0 8px;text-wrap:balance;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:17px;line-height:1.6;margin:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h2{font-size:22px;font-weight:600;margin:52px 0 6px;letter-spacing:-.01em}
+h2 .num{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:10px}
+h3{font-size:19px;font-weight:600;margin:40px 0 10px}
+p{line-height:1.65;max-width:64ch}
+code{font-family:var(--mono);font-size:.92em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+.player{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+button{font-family:var(--sans);font-size:14px;font-weight:500;padding:8px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--tur);outline-offset:2px}
+button:disabled{opacity:.38;cursor:default}
+button.lead{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.count{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cap{padding:16px;border-left:4px solid var(--tur);margin:16px;background:var(--sunk);font-size:15px;line-height:1.6;min-height:92px}
+.cap b{font-weight:600}
+.stage{padding:0 16px 20px}
+svg{width:100%;height:auto;display:block}
+.bx{opacity:.26;transition:opacity .32s}
+.bx.on{opacity:1}
+.bx.on rect{stroke-width:2.2}
+.fade{transition:opacity .4s}
+.hid{opacity:0}
+.cur{transition:cx .55s cubic-bezier(.4,0,.2,1),fill .3s}
+.gb{transition:width .6s cubic-bezier(.4,0,.2,1),opacity .4s}
+.err,.okb{opacity:0;transition:opacity .3s}
+.err.on,.okb.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.bx,.fade,.cur,.gb,.err,.okb{transition:none}}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.key{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--surface)}
+.key h4{font-size:14px;font-weight:600;margin:0 0 6px}
+.key p{font-size:14px;color:var(--muted);margin:0;line-height:1.55}
+.trace{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin-top:14px}
+.trace .ok{color:var(--tur);font-weight:500}
+table{border-collapse:collapse;margin-top:16px;font-size:14px;width:100%}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted)}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+/* references */
+.ref{margin:14px 0 18px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--amb);border-radius:8px;background:var(--surface);font-size:14px;line-height:1.55;max-width:72ch}
+.ref-t{margin:0 0 6px;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ref ul{margin:0;padding-left:18px}
+.ref li{margin:2px 0}
+.cap{display:none}
+</style>
+
+<div class="page">
+
+<p class="eyebrow">Animation 4 · Tâche 3</p>
+<h1>Suivre 100 000 utilisateurs en moins de 15 minutes</h1>
+<!-- references -->
+<div class="ref"><p class="ref-t">À quoi se réfère cette animation</p><ul>
+<li><b>Tâche 3</b> : suivre 100 000 utilisateurs en moins de 15 minutes</li>
+<li><b>Test concerné</b> : <code>HighVolumeTrackLocation</code>, fichier <code>TourGuideTest/PerformanceTest.cs</code>, ligne 49</li>
+<li><b>Code écrit</b> :<br/>- <code>TourGuideService.TrackAllUsersLocation</code><br/>- <code>Tracker.Run</code><br/>- <code>Api/Program.cs</code></li>
+</ul></div>
+<!-- /references -->
+
+<!-- ============================== LECTEUR A ============================== -->
+<h2><span class="num">01</span>Un utilisateur après l'autre, puis cent à la fois</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-a="play" class="lead">Lancer</button>
+    <button data-a="prev">Précédent</button>
+    <button data-a="next">Suivant</button>
+    <button data-a="rst">Début</button>
+    <span class="count" data-a="cnt">étape 1 / 5</span>
+  </div>
+  <div class="cap" data-a="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 430" role="img" aria-label="Animation du calcul : un thread traite 13,3 utilisateurs par seconde, cent threads en traitent 1 333.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LE CODE</text>
+<text x="280" y="30" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)" data-a="tlab">LES THREADS AU TRAVAIL</text>
+<text x="596" y="30" font-size="13" font-weight="600" fill="var(--rou)" font-family="var(--sans)">LE BILAN</text>
+
+<g class="bx" data-a="L1"><rect x="24" y="48" width="236" height="86" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="66" font-size="11" fill="var(--tur)" font-family="var(--sans)">PerformanceTest.cs · le test</text><text x="38" y="88" font-size="11.5" font-family="var(--mono)" fill="var(--tur-t)">HighVolumeTrackLocation()</text><text x="38" y="110" font-size="11" font-family="var(--mono)" fill="var(--tur-t)" data-a="boucle">foreach (var user in allUsers)</text><text x="38" y="126" font-size="11" font-family="var(--sans)" fill="var(--tur)">100 000 utilisateurs</text></g>
+
+<g class="bx" data-a="L2"><rect x="24" y="146" width="236" height="100" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="164" font-size="11" fill="var(--amb)" font-family="var(--sans)">TourGuideService.TrackUserLocation</text><text x="38" y="184" font-size="11.5" font-family="var(--mono)" fill="var(--amb-t)">75 ms par utilisateur</text>
+<rect x="38" y="196" width="181" height="18" rx="3" fill="var(--amb)"/><rect x="219" y="196" width="28" height="18" rx="3" fill="var(--amb)" opacity=".5"/>
+<text x="42" y="209" font-size="10" fill="var(--amb-f)" font-family="var(--sans)">GpsUtil.GetUserLocation 65 ms</text>
+<text x="38" y="232" font-size="10" fill="var(--amb)" font-family="var(--sans)">+ GpsUtil.GetAttractions 10 ms</text></g>
+
+<g class="bx" data-a="L3"><rect x="24" y="258" width="236" height="78" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="276" font-size="11" fill="var(--tur)" font-family="var(--sans)">TourGuideService.cs · la nouvelle méthode</text><text x="38" y="298" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">TrackAllUsersLocation(users)</text><text x="38" y="316" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">Parallel.ForEach, 100 à la fois</text></g>
+
+<line x1="270" y1="40" x2="270" y2="336" stroke="var(--line)" stroke-width="1"/>
+<g data-a="grid"></g>
+<line x1="582" y1="40" x2="582" y2="336" stroke="var(--line)" stroke-width="1"/>
+
+<rect x="596" y="48" width="200" height="66" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="610" y="66" font-size="11" fill="var(--muted)" font-family="var(--sans)">utilisateurs par seconde</text><text x="610" y="98" font-size="22" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-a="debit">—</text>
+<rect x="596" y="124" width="200" height="66" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="610" y="142" font-size="11" fill="var(--muted)" font-family="var(--sans)">durée pour 100 000</text><text x="610" y="174" font-size="22" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-a="proj">—</text>
+<rect x="596" y="200" width="200" height="66" rx="8" fill="var(--tur-f)" stroke="var(--tur)"/><text x="610" y="218" font-size="11" fill="var(--tur)" font-family="var(--sans)">objectif de la tâche 3</text><text x="610" y="250" font-size="22" font-weight="600" fill="var(--tur-t)" font-family="var(--mono)">15 min</text>
+
+<line x1="60" y1="362" x2="760" y2="362" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-a="cur" cx="60" cy="362" r="7" fill="var(--tur)"/>
+<g class="err" data-a="err"><rect x="150" y="384" width="520" height="32" rx="7" fill="var(--rou)"/><text x="170" y="405" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)">2 h 05 pour 900 s autorisées : 8 fois trop lent</text></g>
+<g class="okb" data-a="okb"><rect x="150" y="384" width="520" height="32" rx="7" fill="var(--tur)"/><text x="170" y="405" font-size="12.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)">75 s en théorie : 12 fois sous l'objectif</text></g>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== LECTEUR B ============================== -->
+<h2><span class="num">02</span>Demander 100 threads ne suffit pas</h2>
+<div class="trace" style="white-space:pre">ThreadPool.SetMinThreads(100, 100);                          <span class="ok">// présente ou absente</span>
+
+Stopwatch stopWatch = new Stopwatch();
+stopWatch.Start();                                           <span class="ok">// le chronomètre démarre</span>
+_fixture.TourGuideService.TrackAllUsersLocation(allUsers);   <span class="ok">// le travail mesuré</span>
+stopWatch.Stop();                                            <span class="ok">// le chronomètre s'arrête</span>
+_output.WriteLine($"... {ThreadPool.ThreadCount}");          <span class="ok">// le nombre de threads à la fin</span></div>
+
+<div class="player">
+  <div class="bar">
+    <button data-b="play" class="lead">Lancer</button>
+    <button data-b="prev">Précédent</button>
+    <button data-b="next">Suivant</button>
+    <button data-b="rst">Début</button>
+    <span class="count" data-b="cnt">étape 1 / 5</span>
+  </div>
+  <div class="cap" data-b="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 440" role="img" aria-label="Animation de la réserve de threads : avec 4 threads le test mesure 21,7 s, avec 100 threads il mesure 1,77 s.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">LA RÉSERVE DE THREADS</text>
+<text x="24" y="48" font-size="11.5" fill="var(--fg)" font-family="var(--mono)" data-b="nb">0 thread fourni sur 100 demandés</text>
+<g data-b="pool"></g>
+
+<text x="330" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">CE QU'ON DEVRAIT OBTENIR</text>
+<rect x="330" y="44" width="466" height="62" rx="8" fill="var(--sunk)" stroke="var(--line)"/>
+<text x="346" y="70" font-size="11" fill="var(--muted)" font-family="var(--sans)" data-b="calct">selon le nombre de threads fournis</text>
+<text x="346" y="96" font-size="17" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-b="calc">—</text>
+
+<text x="330" y="140" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LA MESURE DU TEST</text>
+<g data-b="axe"></g>
+<text x="330" y="176" font-size="11" fill="var(--fg)" font-family="var(--sans)">sans réglage</text>
+<rect class="gb" data-b="b1" x="460" y="160" width="0" height="26" rx="4" fill="var(--amb)"/>
+<text class="fade hid" data-b="l1" x="466" y="178" font-size="11.5" font-weight="600" fill="var(--amb)" font-family="var(--mono)">21,7 s</text>
+<text x="330" y="222" font-size="11" fill="var(--fg)" font-family="var(--sans)">avec SetMinThreads</text>
+<rect class="gb" data-b="b2" x="460" y="206" width="0" height="26" rx="4" fill="var(--tur)"/>
+<text class="fade hid" data-b="l2" x="466" y="224" font-size="11.5" font-weight="600" fill="var(--tur)" font-family="var(--mono)">1,77 s</text>
+
+<text x="330" y="300" font-size="11.5" fill="var(--fg)" font-family="var(--sans)" data-b="info"></text>
+<rect x="330" y="314" width="466" height="38" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1.4"/><text x="563" y="339" font-size="17" font-weight="600" fill="var(--tur-t)" font-family="var(--sans)" text-anchor="middle">Test sur 1 000 utilisateurs</text>
+
+<line x1="60" y1="370" x2="760" y2="370" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-b="cur" cx="60" cy="370" r="7" fill="var(--tur)"/>
+<g class="err" data-b="err"><rect x="150" y="392" width="520" height="32" rx="7" fill="var(--rou)"/><text x="170" y="413" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)">sans réglage : 21,7 s pour 1 000 utilisateurs</text></g>
+<g class="okb" data-b="okb"><rect x="150" y="392" width="520" height="32" rx="7" fill="var(--tur)"/><text x="170" y="413" font-size="12.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)">avec SetMinThreads : 1,77 s, douze fois plus vite</text></g>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== LECTEUR C ============================== -->
+<h2><span class="num">03</span>Les 100 000 utilisateurs, et un Tracker parasite</h2>
+
+<div class="player">
+  <div class="bar">
+    <button data-c="play" class="lead">Lancer</button>
+    <button data-c="prev">Précédent</button>
+    <button data-c="next">Suivant</button>
+    <button data-c="rst">Début</button>
+    <span class="count" data-c="cnt">étape 1 / 5</span>
+  </div>
+  <div class="cap" data-c="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 370" role="img" aria-label="Animation des 100 000 utilisateurs : 98,7 s, puis 162,5 s quand le Tracker balaie les mêmes utilisateurs pendant le test.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LES BALAYAGES DE 100 000 UTILISATEURS PENDANT LE TEST</text>
+<g data-c="axis"></g>
+<text x="24" y="92" font-size="11" fill="var(--fg)" font-family="var(--sans)">le test, chronométré</text>
+<text x="24" y="106" font-size="10" fill="var(--muted)" font-family="var(--mono)">TrackAllUsersLocation</text>
+<rect class="gb" data-c="bt" x="184" y="76" width="0" height="32" rx="5" fill="var(--tur)"/>
+<text class="fade" data-c="lt" x="166" y="97" font-size="11.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)"></text>
+<g class="fade hid" data-c="trk"><text x="24" y="146" font-size="11" fill="var(--fg)" font-family="var(--sans)">le Tracker, non chronométré</text><text x="24" y="160" font-size="10" fill="var(--muted)" font-family="var(--mono)">lancé par le constructeur</text></g>
+<rect class="gb" data-c="bk" x="184" y="130" width="0" height="32" rx="5" fill="none" stroke="var(--amb)" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text class="fade" data-c="kl" x="192" y="151" font-size="11" fill="var(--amb)" font-family="var(--sans)"></text>
+<text x="790" y="58" font-size="10.5" fill="var(--tur)" font-family="var(--sans)" text-anchor="end">objectif 900 s, hors cadre →</text>
+
+<rect x="24" y="196" width="250" height="62" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="38" y="214" font-size="11" fill="var(--muted)" font-family="var(--sans)">appels à GpsUtil pendant le test, déduit</text><text x="38" y="244" font-size="20" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-c="gps">100 000</text>
+<rect x="288" y="196" width="250" height="62" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="302" y="214" font-size="11" fill="var(--muted)" font-family="var(--sans)">threads demandés, déduit</text><text x="302" y="244" font-size="20" font-weight="600" fill="var(--fg)" font-family="var(--mono)" data-c="thr">100</text>
+<rect x="552" y="196" width="244" height="62" rx="8" fill="var(--tur-f)" stroke="var(--tur)"/><text x="566" y="214" font-size="11" fill="var(--tur)" font-family="var(--sans)">marge sous l'objectif</text><text x="566" y="244" font-size="20" font-weight="600" fill="var(--tur-t)" font-family="var(--mono)" data-c="marge">9,1 fois</text>
+
+<line x1="60" y1="296" x2="760" y2="296" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-c="cur" cx="60" cy="296" r="7" fill="var(--tur)"/>
+<g class="okb" data-c="okb"><rect x="150" y="318" width="520" height="32" rx="7" fill="var(--tur)"/><text x="170" y="339" font-size="12.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)">PerformanceTest.HighVolumeTrackLocation · réussi</text></g>
+</svg>
+  </div>
+</div>
+
+<!-- ============================== BILAN ============================== -->
+<h2><span class="num">04</span>Le bilan mesuré</h2>
+
+<table>
+<tr><th>Configuration</th><th>Utilisateurs</th><th>Durée du balayage du test</th><th>Le Tracker pendant ce temps, non chronométré</th></tr>
+<tr><td>l'un après l'autre (calculé)</td><td class="num">100 000</td><td class="num">environ 2 h 05</td><td>séquentiel</td></tr>
+<tr><td>parallèle, réserve par défaut</td><td class="num">1 000</td><td class="num">21,7 s</td><td>séquentiel, 1 thread</td></tr>
+<tr><td>parallèle, réserve de 100 threads</td><td class="num">1 000</td><td class="num">1,77 s</td><td>séquentiel, 1 thread</td></tr>
+<tr><td>parallèle, réserve de 100 threads</td><td class="num">100 000</td><td class="num">98,7 s</td><td><b>séquentiel</b>, 1 thread. Le test dure 98,7 s ; pendant ce temps, le Tracker n'a suivi qu'environ 1 300 utilisateurs (calculé). Pour finir les 100 000, il lui aurait fallu environ 2 h (calculé), mais le test ne l'attend pas : il l'arrête et se termine</td></tr>
+<tr><td>parallèle, réserve de 100 threads</td><td class="num">100 000</td><td class="num">162,5 s</td><td><b>parallèle</b>, 100 threads : il balaie les mêmes 100 000 utilisateurs et partage la réserve avec le test</td></tr>
+</table>
+
+
+<h3>L'état des tests</h3>
+<div class="trace">Réussi!  - échec :     0, réussite :     <span class="ok">10</span>, ignorée(s) :     1, total :    11</div>
+
+<footer>Projet 8 · Améliorez votre application avec des systèmes distribués · document de travail</footer>
+</div>
+
+<script>
+(function(){
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e}
+function fr(n,d){return Number(n).toLocaleString("fr-FR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
+
+function player(k,S,draw){
+  var q=function(n){return document.querySelector('[data-'+k+'="'+n+'"]')};
+  var i=0,tm=null;
+  function render(){
+    var s=S[i];
+    var c=s.e?"var(--rou)":(s.amb?"var(--amb)":"var(--tur)");
+    draw(s,q);
+    q("cap").innerHTML=s.c;
+    q("cap").style.borderLeftColor=c;
+    q("cnt").textContent="étape "+(i+1)+" / "+S.length;
+    q("prev").disabled=i===0;q("next").disabled=i===S.length-1;
+    var cur=q("cur");cur.setAttribute("cx",60+s.t/100*700);cur.setAttribute("fill",c);
+  }
+  function stop(){if(tm){clearInterval(tm);tm=null}q("play").textContent="Lancer"}
+  q("play").onclick=function(){
+    if(tm){stop();return}
+    if(i===S.length-1){i=0}
+    q("play").textContent="Pause";
+    tm=setInterval(function(){if(i<S.length-1){i++;render()}else{stop()}},3200);
+    render();
+  };
+  q("next").onclick=function(){stop();if(i<S.length-1){i++;render()}};
+  q("prev").onclick=function(){stop();if(i>0){i--;render()}};
+  q("rst").onclick=function(){stop();i=0;render()};
+  return {render:render};
+}
+
+/* Grille de 100 cases : 10 x 10. Sert aux lecteurs A et B. */
+function grille(parent,x0,y0,taille,pas){
+  var cases=[];
+  for(var r=0;r<10;r++)for(var c=0;c<10;c++){
+    cases.push(el("rect",{x:x0+c*pas,y:y0+r*pas,width:taille,height:taille,rx:3},parent));
+  }
+  return cases;
+}
+function peindre(cases,actifs,demandes,ajoutes){
+  ajoutes=ajoutes||0;
+  cases.forEach(function(r,i){
+    if(i<actifs){r.setAttribute("fill","var(--amb)");r.setAttribute("stroke","var(--amb)");r.setAttribute("stroke-dasharray","")}
+    else if(i<actifs+ajoutes){r.setAttribute("fill","var(--tur)");r.setAttribute("stroke","var(--tur)");r.setAttribute("stroke-dasharray","")}
+    else if(i<demandes){r.setAttribute("fill","none");r.setAttribute("stroke","var(--rou)");r.setAttribute("stroke-dasharray","3 3")}
+    else{r.setAttribute("fill","var(--sunk)");r.setAttribute("stroke","var(--line)");r.setAttribute("stroke-dasharray","")}
+  });
+}
+
+/* ---------------- Lecteur A : le calcul ---------------- */
+var gA=document.querySelector('[data-a="grid"]');
+var casesA=grille(gA,290,56,22,27);
+var leg1=el("text",{x:290,y:332,"font-size":"11","font-family":"var(--sans)",fill:"var(--amb)"},gA,"");
+player("a",[
+{c:"",on:["L1"],act:1,dem:1,debit:"—",proj:"—",t:0,lab:"1 seul thread travaille"},
+{c:"",on:["L2"],act:1,dem:1,debit:"—",proj:"—",t:20,amb:1,lab:"1 seul thread travaille"},
+{c:"",on:["L1","L2"],act:1,dem:1,debit:"13,3",proj:"2 h 05",t:40,e:1,err:1,lab:"1 seul thread travaille"},
+{c:"",on:["L3"],act:100,dem:100,debit:"—",proj:"—",t:70,lab:"100 threads travaillent en même temps"},
+{c:"",on:["L3"],act:100,dem:100,debit:"1 333",proj:"75 s",t:100,ok:1,lab:"100 threads travaillent en même temps"}
+],function(s,q){
+  ["L1","L2","L3"].forEach(function(b){q(b).classList.toggle("on",s.on.indexOf(b)>-1)});
+  peindre(casesA,s.act,s.dem);
+  leg1.textContent=s.lab;
+  q("boucle").textContent=s.act>1?"TrackAllUsersLocation(allUsers)":"foreach (var user in allUsers)";
+  q("debit").textContent=s.debit;q("proj").textContent=s.proj;
+  q("err").classList.toggle("on",!!s.err);q("okb").classList.toggle("on",!!s.ok);
+}).render();
+
+/* ---------------- Lecteur B : la réserve de threads ---------------- */
+var gB=document.querySelector('[data-b="pool"]');
+var casesB=grille(gB,24,64,20,25);
+var axeB=document.querySelector('[data-b="axe"]'),MX0=460,MPX=320/25;
+[0,5,10,15,20,25].forEach(function(t){
+  el("line",{x1:MX0+t*MPX,y1:152,x2:MX0+t*MPX,y2:240,stroke:"var(--line)","stroke-width":"1"},axeB);
+  el("text",{x:MX0+t*MPX,y:256,"font-size":"10","font-family":"var(--mono)",fill:"var(--muted)","text-anchor":"middle"},axeB,t+" s");
+});
+player("b",[{c:"",act:0,dem:100,calc:"—",m1:0,m2:0,info:"",t:0},
+{c:"",act:4,dem:100,calc:"—",m1:0,m2:0,info:"",t:16,e:1},
+{c:"",act:4,aj:4,dem:100,calc:"4 à 8 threads : une vingtaine de secondes",m1:21.7,m2:0,info:"attendu : une vingtaine de secondes · mesuré : 21,7 s",t:50,e:1,err:1},
+{c:"",act:100,dem:100,n:100,calc:"—",m1:21.7,m2:0,info:"",t:82},
+{c:"",act:100,dem:100,n:100,calc:"avec 100 threads : moins d'une seconde",m1:21.7,m2:1.77,info:"attendu : moins d'une seconde · mesuré : 1,77 s",t:100,ok:1}
+],function(s,q){
+  peindre(casesB,s.act,s.dem,s.aj);
+  q("nb").textContent=s.aj?(s.act+" + "+s.aj+" ajoutés = "+(s.act+s.aj)+" threads sur "+s.dem):(s.act+(s.act>1?" threads fournis":" thread fourni")+" sur "+s.dem+" demandés");
+  q("calc").textContent=s.calc;
+  q("b1").setAttribute("width",s.m1*MPX);q("l1").setAttribute("x",MX0+s.m1*MPX+8);q("l1").classList.toggle("hid",!s.m1);
+  q("b2").setAttribute("width",s.m2*MPX);q("l2").setAttribute("x",MX0+s.m2*MPX+8);q("l2").classList.toggle("hid",!s.m2);
+  q("info").textContent=s.info;
+  q("err").classList.toggle("on",!!s.err);q("okb").classList.toggle("on",!!s.ok);
+}).render();
+
+/* ---------------- Lecteur C : les 100 000 utilisateurs ---------------- */
+var ax=document.querySelector('[data-c="axis"]'),BX0=184,BPX=600/200;
+for(var m=0;m<=200;m+=25){
+  el("line",{x1:BX0+m*BPX,y1:66,x2:BX0+m*BPX,y2:172,stroke:"var(--line)","stroke-width":"1"},ax);
+  el("text",{x:BX0+m*BPX,y:186,"font-size":"10","font-family":"var(--mono)",fill:"var(--muted)","text-anchor":"middle"},ax,m+" s");
+}
+player("c",[
+{c:"",bt:98.7,bk:98.7,kl:"un par un, non chronométré",trk:1,gps:"100 000",thr:"100",marge:"9,1 fois",t:0,ok:1},
+{c:"",bt:98.7,bk:98.7,kl:"un par un, non chronométré",trk:1,gps:"100 000",thr:"100",marge:"9,1 fois",t:25},
+{c:"",bt:0,bk:200,kl:"100 à la fois, démarre avec le test",trk:1,gps:"200 000",thr:"200",marge:"—",t:50,amb:1},
+{c:"",bt:162.5,bk:162.5,kl:"100 à la fois, non chronométré",trk:1,gps:"200 000",thr:"200",marge:"5,5 fois",t:75,e:1},
+{c:"",bt:162.5,bk:162.5,kl:"100 à la fois, non chronométré",trk:1,gps:"200 000",thr:"200",marge:"5,5 fois",t:100,ok:1}
+],function(s,q){
+  q("bt").setAttribute("width",s.bt*BPX);
+  if(s.bt){q("lt").setAttribute("x",BX0+s.bt*BPX+8);q("lt").setAttribute("fill","var(--tur)");q("lt").textContent=fr(s.bt,1)+" s, mesurées"}
+  else{q("lt").setAttribute("x",BX0+8);q("lt").setAttribute("fill","var(--muted)");q("lt").textContent="second lancement : pas encore mesuré"}
+  q("bk").setAttribute("width",s.bk*BPX);q("kl").textContent=s.kl||"";
+  q("trk").classList.toggle("hid",!s.trk);
+  q("gps").textContent=s.gps;q("thr").textContent=s.thr;q("marge").textContent=s.marge;
+  q("okb").classList.toggle("on",!!s.ok);
+}).render();
+})();
+</script>

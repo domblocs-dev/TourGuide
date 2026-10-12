@@ -1,0 +1,300 @@
+<title>Le conflit TourGuide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mise en page : deux lecteurs pas à pas, chacun avec deux colonnes de threads au-dessus de l'objet partagé et une chronologie. */
+:root{
+  --bg:#FAF8F5; --surface:#FFFFFF; --sunk:#F3F0EA;
+  --fg:#211F1C; --muted:#6B6560; --line:#DDD7CF;
+  --tur:#0F6E56; --tur-f:#E3F3EC; --tur-t:#084736;
+  --amb:#8A5206; --amb-f:#FBEEDC; --amb-t:#5C3604;
+  --rou:#A32D2D; --rou-f:#FBEAEA; --rou-t:#6E1C1C;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0}
+.page{max-width:980px;margin:0 auto;padding:0 16px;padding-block:32px 56px}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:600;line-height:1.15;margin:0 0 8px;text-wrap:balance;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:17px;line-height:1.6;margin:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h2{font-size:22px;font-weight:600;margin:52px 0 6px;letter-spacing:-.01em}
+h2 .num{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:10px}
+h3{font-size:19px;font-weight:600;margin:40px 0 10px}
+p{line-height:1.65;max-width:64ch}
+code{font-family:var(--mono);font-size:.92em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+.player{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+button{font-family:var(--sans);font-size:14px;font-weight:500;padding:8px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--tur);outline-offset:2px}
+button:disabled{opacity:.38;cursor:default}
+button.lead{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.count{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cap{padding:16px;border-left:4px solid var(--tur);margin:16px;background:var(--sunk);font-size:15px;line-height:1.6;min-height:80px}
+.cap b{font-weight:600}
+.stage{padding:0 16px 20px}
+svg{width:100%;height:auto;display:block}
+.bx{opacity:.26;transition:opacity .32s}
+.bx.on{opacity:1}
+.bx.on rect{stroke-width:2.2}
+.lk{opacity:0;transition:opacity .38s}
+.lk.on{opacity:1}
+.lk.on{opacity:1}
+.cell{transition:opacity .45s}
+.cell.hid{opacity:0}
+.cur{transition:cx .55s cubic-bezier(.4,0,.2,1),fill .3s}
+.err{opacity:0;transition:opacity .3s}
+.err.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.bx,.lk,.cell,.cur,.err{transition:none}}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.key{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--surface)}
+.key h4{font-size:14px;font-weight:600;margin:0 0 6px}
+.key p{font-size:14px;color:var(--muted);margin:0;line-height:1.55}
+.trace{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin-top:14px}
+.trace .hl{color:var(--rou);font-weight:500}
+table{border-collapse:collapse;margin-top:16px;font-size:14px;width:100%}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+/* references */
+.ref{margin:14px 0 18px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--amb);border-radius:8px;background:var(--surface);font-size:14px;line-height:1.55;max-width:72ch}
+.ref-t{margin:0 0 6px;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ref ul{margin:0;padding-left:18px}
+.ref li{margin:2px 0}
+.cap{display:none}
+</style>
+
+<div class="page">
+
+<p class="eyebrow">Animation 1 · Tâche 1, correction 1</p>
+<h1>Deux threads, une seule liste</h1>
+<!-- references -->
+<div class="ref"><p class="ref-t">À quoi se réfère cette animation</p><ul>
+<li><b>Tâche 1</b> : corriger les tests qui échouent</li>
+<li><b>Correction 1</b> : le test et le Tracker modifient en même temps les listes du même utilisateur</li>
+<li><b>Test concerné</b> : <code>NearAllAttractions</code>, fichier <code>TourGuideTest/RewardServiceTest.cs</code>, ligne 42</li>
+<li><b>Code corrigé</b> : <code>Api/Users/User.cs</code></li>
+</ul></div>
+<!-- /references -->
+
+<h2><span class="num">01</span>VisitedLocations : l'un lit, l'autre écrit</h2>
+
+<div class="player" id="pA">
+  <div class="bar">
+    <button data-a="play" class="lead">Lancer</button>
+    <button data-a="prev">Précédent</button>
+    <button data-a="next">Suivant</button>
+    <button data-a="rst">Début</button>
+    <span class="count" data-a="cnt">étape 1 / 9</span>
+  </div>
+  <div class="cap" data-a="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 560" role="img" aria-label="Animation du conflit sur VisitedLocations : le thread du test parcourt la liste pendant que le Tracker y ajoute un élément.">
+<defs><marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9Z" fill="context-stroke"/></marker></defs>
+<text x="24" y="28" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">THREAD 1 · LE TEST — il lit</text>
+<text x="406" y="28" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">THREAD 2 · LE TRACKER — il écrit</text>
+<line x1="390" y1="38" x2="390" y2="300" stroke="var(--line)" stroke-width="1"/>
+<g class="bx" data-a="L1"><rect x="24" y="46" width="350" height="48" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="64" font-size="11" fill="var(--tur)" font-family="var(--sans)">RewardServiceTest.cs · le test</text><text x="38" y="84" font-size="12.5" font-family="var(--mono)" fill="var(--tur-t)">RewardServiceTest.NearAllAttractions()</text></g>
+<g class="bx" data-a="L2"><rect x="24" y="104" width="350" height="64" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="122" font-size="11" fill="var(--tur)" font-family="var(--sans)">RewardsService.cs</text><text x="38" y="142" font-size="12.5" font-family="var(--mono)" fill="var(--tur-t)">RewardsService.CalculateRewards(user)</text><text x="38" y="160" font-size="11" font-family="var(--mono)" fill="var(--tur-t)">userLocations = user.VisitedLocations</text></g>
+<g class="bx" data-a="L3"><rect x="24" y="178" width="350" height="64" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="196" font-size="11" fill="var(--tur)" font-family="var(--sans)">RewardsService.cs · ligne 41 · il LIT</text><text x="38" y="216" font-size="12.5" font-family="var(--mono)" fill="var(--tur-t)">foreach (var vl in userLocations)</text><text x="38" y="234" font-size="11" font-family="var(--sans)" fill="var(--tur)" data-a="note">position 1 sur 3</text></g>
+<g class="bx" data-a="R1"><rect x="406" y="46" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="64" font-size="11" fill="var(--amb)" font-family="var(--sans)">Tracker.cs · le thread de fond</text><text x="420" y="84" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">Tracker.Run()</text></g>
+<g class="bx" data-a="R2"><rect x="406" y="104" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="122" font-size="11" fill="var(--amb)" font-family="var(--sans)">TourGuideService.cs</text><text x="420" y="142" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">TourGuideService.TrackUserLocation(user)</text></g>
+<g class="bx" data-a="R3"><rect x="406" y="162" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="180" font-size="11" fill="var(--amb)" font-family="var(--sans)">GpsUtil.cs · service externe</text><text x="420" y="200" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">GpsUtil.GetUserLocation(userId)</text></g>
+<g class="bx" data-a="R4"><rect x="406" y="220" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="238" font-size="11" fill="var(--amb)" font-family="var(--sans)">User.cs · il ÉCRIT</text><text x="420" y="258" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">User.AddToVisitedLocations(...)</text></g>
+<path class="lk" data-a="lkN" d="M376 70 H400" fill="none" stroke="var(--rou)" stroke-width="2.4" marker-end="url(#arA)"/>
+<text class="lk" data-a="lbN" x="330" y="34" font-size="10.5" fill="var(--rou)" font-family="var(--sans)" text-anchor="middle">Task.Run</text>
+<path class="lk" data-a="lkR" d="M199 244 V302 H280 V322" fill="none" stroke="var(--tur)" stroke-width="2.4" marker-end="url(#arA)"/>
+<path class="lk" data-a="lkW" d="M581 270 V302 H520 V322" fill="none" stroke="var(--amb)" stroke-width="2.4" marker-end="url(#arA)"/>
+<rect x="150" y="330" width="500" height="120" rx="10" fill="var(--rou-f)" stroke="var(--rou)" stroke-width="1.6"/>
+<text x="168" y="352" font-size="11" fill="var(--rou)" font-family="var(--sans)">User.cs · l'objet partagé par les deux threads</text>
+<text x="168" y="372" font-size="13" font-family="var(--mono)" fill="var(--rou-t)">User.VisitedLocations</text>
+<g class="cell" data-a="c1"><rect x="168" y="384" width="66" height="30" rx="5" fill="var(--rou)" opacity=".22"/><text x="186" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">pos 1</text></g>
+<g class="cell" data-a="c2"><rect x="240" y="384" width="66" height="30" rx="5" fill="var(--rou)" opacity=".22"/><text x="258" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">pos 2</text></g>
+<g class="cell" data-a="c3"><rect x="312" y="384" width="66" height="30" rx="5" fill="var(--rou)" opacity=".22"/><text x="330" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">pos 3</text></g>
+<g class="cell hid" data-a="c4"><rect x="384" y="384" width="66" height="30" rx="5" fill="var(--rou)" opacity=".5"/><text x="402" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">pos 4</text></g>
+<text x="472" y="404" font-size="13" font-family="var(--mono)" fill="var(--rou-t)" data-a="ver">version : 3</text>
+<text x="168" y="436" font-size="11" fill="var(--rou)" font-family="var(--sans)">lue par RewardsService, écrite par User.AddToVisitedLocations</text>
+<g class="err" data-a="err"><rect x="150" y="458" width="500" height="32" rx="7" fill="var(--rou)"/><text x="170" y="479" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)">InvalidOperationException : Collection was modified</text></g>
+<line x1="60" y1="524" x2="760" y2="524" stroke="var(--line)" stroke-width="1.5"/>
+<line x1="60" y1="517" x2="60" y2="531" stroke="var(--muted)" stroke-width="1.5"/><text x="48" y="548" font-size="11" fill="var(--muted)" font-family="var(--sans)">t = 0</text>
+<line x1="130" y1="517" x2="130" y2="531" stroke="var(--amb)" stroke-width="1.5"/><text x="110" y="548" font-size="11" fill="var(--amb)" font-family="var(--sans)">85 ms</text>
+<line x1="732" y1="517" x2="732" y2="531" stroke="var(--rou)" stroke-width="1.5"/><text x="716" y="548" font-size="11" fill="var(--rou)" font-family="var(--sans)">13 s</text>
+<circle class="cur" data-a="cur" cx="60" cy="524" r="7.5" fill="var(--tur)"/>
+</svg>
+  </div>
+</div>
+
+<h2><span class="num">02</span>UserRewards : les deux lisent et les deux écrivent</h2>
+
+<div class="player" id="pB">
+  <div class="bar">
+    <button data-b="play" class="lead">Lancer</button>
+    <button data-b="prev">Précédent</button>
+    <button data-b="next">Suivant</button>
+    <button data-b="rst">Début</button>
+    <span class="count" data-b="cnt">étape 1 / 8</span>
+  </div>
+  <div class="cap" data-b="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 560" role="img" aria-label="Animation du conflit sur UserRewards : les deux threads exécutent la même méthode et lisent puis écrivent la même liste.">
+<defs><marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9Z" fill="context-stroke"/></marker></defs>
+<text x="24" y="28" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">THREAD 1 · LE TEST — il lit et il écrit</text>
+<text x="406" y="28" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">THREAD 2 · LE TRACKER — il lit et il écrit</text>
+<line x1="390" y1="38" x2="390" y2="300" stroke="var(--line)" stroke-width="1"/>
+<g class="bx" data-b="L1"><rect x="24" y="46" width="350" height="48" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="64" font-size="11" fill="var(--tur)" font-family="var(--sans)">RewardServiceTest.cs · le test</text><text x="38" y="84" font-size="12.5" font-family="var(--mono)" fill="var(--tur-t)">RewardServiceTest.NearAllAttractions()</text></g>
+<g class="bx" data-b="L2"><rect x="24" y="104" width="350" height="64" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="122" font-size="11" fill="var(--tur)" font-family="var(--sans)">RewardsService.cs · il LIT</text><text x="38" y="142" font-size="12.5" font-family="var(--mono)" fill="var(--tur-t)">RewardsService.CalculateRewards(user)</text><text x="38" y="160" font-size="11" font-family="var(--mono)" fill="var(--tur-t)" data-b="note">if (!user.UserRewards.Any(...))</text></g>
+<g class="bx" data-b="L3"><rect x="24" y="178" width="350" height="64" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="196" font-size="11" fill="var(--tur)" font-family="var(--sans)">User.cs · il ÉCRIT</text><text x="38" y="216" font-size="12.5" font-family="var(--mono)" fill="var(--tur-t)">User.AddUserReward(...)</text><text x="38" y="234" font-size="11" font-family="var(--sans)" fill="var(--tur)">appelé depuis RewardsService, après 500 ms</text></g>
+<g class="bx" data-b="R1"><rect x="406" y="46" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="64" font-size="11" fill="var(--amb)" font-family="var(--sans)">Tracker.cs · le thread de fond</text><text x="420" y="84" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">Tracker.Run()</text></g>
+<g class="bx" data-b="R2"><rect x="406" y="104" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="122" font-size="11" fill="var(--amb)" font-family="var(--sans)">TourGuideService.cs</text><text x="420" y="142" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">TourGuideService.TrackUserLocation(user)</text></g>
+<g class="bx" data-b="R3"><rect x="406" y="162" width="350" height="64" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="180" font-size="11" fill="var(--amb)" font-family="var(--sans)">RewardsService.cs · LA MÊME méthode · il LIT</text><text x="420" y="200" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">RewardsService.CalculateRewards(user)</text><text x="420" y="218" font-size="11" font-family="var(--mono)" fill="var(--amb-t)" data-b="note2">if (!user.UserRewards.Any(...))</text></g>
+<g class="bx" data-b="R4"><rect x="406" y="236" width="350" height="48" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="420" y="254" font-size="11" fill="var(--amb)" font-family="var(--sans)">User.cs · il ÉCRIT</text><text x="420" y="274" font-size="12.5" font-family="var(--mono)" fill="var(--amb-t)">User.AddUserReward(...)</text></g>
+<path class="lk" data-b="lkN" d="M376 70 H400" fill="none" stroke="var(--rou)" stroke-width="2.4" marker-end="url(#arB)"/>
+<text class="lk" data-b="lbN" x="330" y="34" font-size="10.5" fill="var(--rou)" font-family="var(--sans)" text-anchor="middle">Task.Run</text>
+<path class="lk" data-b="lkR" d="M199 244 V302 H280 V322" fill="none" stroke="var(--tur)" stroke-width="2.4" marker-end="url(#arB)"/>
+<path class="lk" data-b="lkW" d="M581 286 V302 H520 V322" fill="none" stroke="var(--amb)" stroke-width="2.4" marker-end="url(#arB)"/>
+<rect x="150" y="330" width="500" height="120" rx="10" fill="var(--rou-f)" stroke="var(--rou)" stroke-width="1.6"/>
+<text x="168" y="352" font-size="11" fill="var(--rou)" font-family="var(--sans)">User.cs · l'objet partagé par les deux threads</text>
+<text x="168" y="372" font-size="13" font-family="var(--mono)" fill="var(--rou-t)">User.UserRewards</text>
+<g class="cell hid" data-b="c1"><rect x="168" y="384" width="90" height="30" rx="5" fill="var(--rou)" opacity=".5"/><text x="180" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">Disneyland</text></g>
+<g class="cell hid" data-b="c2"><rect x="264" y="384" width="90" height="30" rx="5" fill="var(--rou)" opacity=".5"/><text x="276" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">Jackson Hole</text></g>
+<g class="cell hid" data-b="c3"><rect x="360" y="384" width="90" height="30" rx="5" fill="var(--rou)" opacity=".5"/><text x="372" y="404" font-size="11" fill="var(--rou-t)" font-family="var(--sans)">Bronx Zoo</text></g>
+<text x="472" y="404" font-size="13" font-family="var(--mono)" fill="var(--rou-t)" data-b="ver">version : 0</text>
+<text x="168" y="436" font-size="11" fill="var(--rou)" font-family="var(--sans)">lue par le Any de RewardsService, écrite par User.AddUserReward</text>
+<g class="err" data-b="err"><rect x="150" y="458" width="500" height="32" rx="7" fill="var(--rou)"/><text x="170" y="479" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)">InvalidOperationException : Collection was modified</text></g>
+<line x1="60" y1="524" x2="760" y2="524" stroke="var(--line)" stroke-width="1.5"/>
+<line x1="60" y1="517" x2="60" y2="531" stroke="var(--muted)" stroke-width="1.5"/><text x="48" y="548" font-size="11" fill="var(--muted)" font-family="var(--sans)">t = 0</text>
+<line x1="410" y1="517" x2="410" y2="531" stroke="var(--amb)" stroke-width="1.5"/><text x="386" y="548" font-size="11" fill="var(--amb)" font-family="var(--sans)">500 ms</text>
+<line x1="732" y1="517" x2="732" y2="531" stroke="var(--rou)" stroke-width="1.5"/><text x="716" y="548" font-size="11" fill="var(--rou)" font-family="var(--sans)">1,5 s</text>
+<circle class="cur" data-b="cur" cx="60" cy="524" r="7.5" fill="var(--tur)"/>
+</svg>
+  </div>
+</div>
+
+<h3>Les deux conflits comparés</h3>
+<table>
+<tr><th>&nbsp;</th><th>VisitedLocations</th><th>UserRewards</th></tr>
+<tr><td><b>Le test</b></td><td>lit seulement</td><td>lit et écrit</td></tr>
+<tr><td><b>Le Tracker</b></td><td>écrit seulement</td><td>lit et écrit</td></tr>
+<tr><td><b>Qui peut lever</b></td><td>le lecteur seulement</td><td>les deux</td></tr>
+<tr><td><b>Méthodes en cause</b></td><td>deux méthodes différentes</td><td>la même méthode, sur deux threads</td></tr>
+<tr><td><b>Lecteurs de la liste</b></td><td>un seul</td><td>trois, dont la sérialisation JSON</td></tr>
+</table>
+
+
+<h3>La trace réelle</h3>
+<div class="trace">at System.Collections.Generic.List`1.Enumerator.<span class="hl">MoveNextRare()</span><br>
+at TourGuide.Services.RewardsService.CalculateRewards(User user)<br>
+&nbsp;&nbsp;&nbsp;RewardsService.cs <span class="hl">ligne 41</span><br>
+at TourGuideTest.RewardServiceTest.NearAllAttractions()<br>
+&nbsp;&nbsp;&nbsp;RewardServiceTest.cs ligne 48</div>
+
+<h2><span class="num">03</span>La correction : protéger les deux listes de <code>User</code></h2>
+
+<table>
+<tr><th></th><th>Les positions</th><th>Les récompenses</th></tr>
+<tr><td>la vraie liste</td><td>privée : <code>_visitedLocations</code></td><td>privée : <code>_userRewards</code></td></tr>
+<tr><td>la propriété</td><td><code>VisitedLocations</code> rend une <b>copie</b>, sous verrou</td><td><code>UserRewards</code> rend une <b>copie</b>, sous verrou</td></tr>
+<tr><td>l'ajout</td><td><code>AddToVisitedLocations</code>, <b>sous verrou</b></td><td><code>AddUserReward</code>, <b>sous verrou</b>, vérification et ajout ensemble</td></tr>
+</table>
+
+<div class="trace" style="white-space:pre">public List&lt;VisitedLocation&gt; VisitedLocations
+{
+    get { lock (_verrou) { return new List&lt;VisitedLocation&gt;(_visitedLocations); } }
+}
+
+public void AddUserReward(UserReward userReward)
+{
+    lock (_verrou)
+    {
+        if (!_userRewards.Exists(r =&gt;
+                r.Attraction.AttractionName == userReward.Attraction.AttractionName))
+            _userRewards.Add(userReward);
+    }
+}</div>
+
+
+<footer>Projet 8 · Améliorez votre application avec des systèmes distribués · document de travail</footer>
+</div>
+
+<script>
+(function(){
+function player(k,S,cfg){
+  var q=function(n){return document.querySelector('[data-'+k+'="'+n+'"]')};
+  var qa=function(n){return document.querySelectorAll('[data-'+k+'="'+n+'"]')};
+  var i=0,tm=null;
+  function col(s){return s.e?"var(--rou)":(s.amb?"var(--amb)":"var(--tur)")}
+  function draw(){
+    var s=S[i],c=col(s);
+    cfg.boxes.forEach(function(b){q(b).classList.toggle("on",s.on.indexOf(b)>-1)});
+    ["R","W","N"].forEach(function(n){
+      var e=q("lk"+n); if(e) e.classList.toggle("on",!!s.lk&&s.lk.indexOf(n)>-1);
+      var l=q("lb"+n); if(l) l.classList.toggle("on",!!s.lk&&s.lk.indexOf(n)>-1);
+    });
+    cfg.cells.forEach(function(cl,n){q(cl).classList.toggle("hid",s.n<n+1)});
+    q("ver").textContent="version : "+s.v;
+    qa("note").forEach(function(e){if(s.p!==undefined)e.textContent=s.p});
+    if(q("note2")&&s.p2!==undefined)q("note2").textContent=s.p2;
+    q("cur").setAttribute("cx",60+s.t/100*700);
+    q("cur").setAttribute("fill",c);
+    q("err").classList.toggle("on",!!s.e);
+    q("cap").innerHTML=s.c;
+    q("cap").style.borderLeftColor=c;
+    q("cnt").textContent="étape "+(i+1)+" / "+S.length;
+    q("prev").disabled=i===0; q("next").disabled=i===S.length-1;
+  }
+  function stop(){if(tm){clearInterval(tm);tm=null}q("play").textContent="Lancer"}
+  q("play").onclick=function(){
+    if(tm){stop();return}
+    if(i===S.length-1){i=0}
+    q("play").textContent="Pause";
+    tm=setInterval(function(){if(i<S.length-1){i++;draw()}else{stop()}},2800);
+    draw();
+  };
+  q("next").onclick=function(){stop();if(i<S.length-1){i++;draw()}};
+  q("prev").onclick=function(){stop();if(i>0){i--;draw()}};
+  q("rst").onclick=function(){stop();i=0;draw()};
+  draw();
+}
+
+player("a",[
+{c:"",on:["L1"],n:3,v:3,t:0,p:"position 1 sur 3"},
+{c:"",on:["L1","R1"],lk:"N",n:3,v:3,t:0,p:"position 1 sur 3"},
+{c:"",on:["L2"],n:3,v:3,t:0,p:"position 1 sur 3"},
+{c:"",on:["L3"],lk:"R",n:3,v:3,t:2,p:"position 1 sur 3"},
+{c:"",on:["R2"],amb:1,n:3,v:3,t:5,p:"position 1 sur 3"},
+{c:"",on:["R3"],amb:1,n:3,v:3,t:10,p:"position 1 sur 3"},
+{c:"",on:["R4"],amb:1,lk:"W",n:4,v:4,t:10,p:"position 1 sur 3"},
+{c:"",on:["L3"],lk:"R",n:4,v:4,t:55,p:"position 1 sur 3 · 26 appels"},
+{c:"",on:["L3"],lk:"R",n:4,v:4,t:88,p:"passage à la position 2"},
+{c:"",on:["L3"],n:4,v:4,t:96,p:"arrêt",e:1}
+],{boxes:["L1","L2","L3","R1","R2","R3","R4"],cells:["c1","c2","c3","c4"]});
+
+player("b",[
+{c:"",on:["L1","R1"],lk:"N",n:0,v:0,t:0,p:"if (!user.UserRewards.Any(...))",p2:"if (!user.UserRewards.Any(...))"},
+{c:"",on:["L2"],lk:"R",n:0,v:0,t:3,p:"aucune récompense trouvée",p2:"if (!user.UserRewards.Any(...))"},
+{c:"",on:["R2"],amb:1,n:0,v:0,t:5,p:"aucune récompense trouvée",p2:"if (!user.UserRewards.Any(...))"},
+{c:"",on:["R3"],amb:1,lk:"W",n:0,v:0,t:8,p:"aucune récompense trouvée",p2:"aucune récompense trouvée"},
+{c:"",on:["R4"],amb:1,lk:"W",n:1,v:1,t:33,p:"aucune récompense trouvée",p2:"il a déjà écrit"},
+{c:"",on:["L3"],lk:"R",n:1,v:1,t:37,p:"doublon évité par Exists",p2:"il a déjà écrit"},
+{c:"",on:["L2","R4"],lk:"RW",n:2,v:2,t:64,p:"parcours en cours",p2:"il ajoute pendant ce parcours"},
+{c:"",on:["L2","R3"],n:2,v:2,t:96,p:"arrêt",p2:"arrêt",e:1}
+],{boxes:["L1","L2","L3","R1","R2","R3","R4"],cells:["c1","c2","c3"]});
+})();
+</script>

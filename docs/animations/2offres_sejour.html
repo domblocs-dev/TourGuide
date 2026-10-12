@@ -1,0 +1,236 @@
+<title>Les offres de séjour</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mise en page : deux lecteurs pas à pas. À gauche la chaîne d'appels, à droite la table des voyagistes, en bas les deux collections. */
+:root{
+  --bg:#FAF8F5; --surface:#FFFFFF; --sunk:#F3F0EA;
+  --fg:#211F1C; --muted:#6B6560; --line:#DDD7CF;
+  --tur:#0F6E56; --tur-f:#E3F3EC; --tur-t:#084736;
+  --amb:#8A5206; --amb-f:#FBEEDC; --amb-t:#5C3604;
+  --rou:#A32D2D; --rou-f:#FBEAEA; --rou-t:#6E1C1C;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#171614; --surface:#201E1B; --sunk:#1B1917;
+  --fg:#EDE9E3; --muted:#9E978F; --line:#35312B;
+  --tur:#63C9A6; --tur-f:#0B3A2E; --tur-t:#BDEBDB;
+  --amb:#E9A23F; --amb-f:#3A2708; --amb-t:#F8D9A6;
+  --rou:#EC8B8B; --rou-f:#3D1616; --rou-t:#F7C6C6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0}
+.page{max-width:980px;margin:0 auto;padding:0 16px;padding-block:32px 56px}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:600;line-height:1.15;margin:0 0 8px;text-wrap:balance;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:17px;line-height:1.6;margin:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h2{font-size:22px;font-weight:600;margin:52px 0 6px;letter-spacing:-.01em}
+h2 .num{font-family:var(--mono);color:var(--muted);font-weight:400;margin-right:10px}
+h3{font-size:19px;font-weight:600;margin:40px 0 10px}
+p{line-height:1.65;max-width:64ch}
+code{font-family:var(--mono);font-size:.92em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+.player{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+button{font-family:var(--sans);font-size:14px;font-weight:500;padding:8px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--tur);outline-offset:2px}
+button:disabled{opacity:.38;cursor:default}
+button.lead{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.count{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cap{padding:16px;border-left:4px solid var(--tur);margin:16px;background:var(--sunk);font-size:15px;line-height:1.6;min-height:92px}
+.cap b{font-weight:600}
+.stage{padding:0 16px 20px}
+svg{width:100%;height:auto;display:block}
+.bx{opacity:.26;transition:opacity .32s}
+.bx.on{opacity:1}
+.bx.on rect{stroke-width:2.2}
+.chip{opacity:.3;transition:opacity .35s}
+.chip.used{opacity:1}
+.slot{transition:opacity .4s}
+.slot.hid{opacity:0}
+.cur{transition:cx .55s cubic-bezier(.4,0,.2,1),fill .3s}
+.err{opacity:0;transition:opacity .3s}
+.err.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.bx,.chip,.slot,.cur,.err{transition:none}}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.key{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--surface)}
+.key h4{font-size:14px;font-weight:600;margin:0 0 6px}
+.key p{font-size:14px;color:var(--muted);margin:0;line-height:1.55}
+.trace{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin-top:14px}
+.trace .hl{color:var(--rou);font-weight:500}
+.trace .ok{color:var(--tur);font-weight:500}
+table{border-collapse:collapse;margin-top:16px;font-size:14px;width:100%}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+/* references */
+.ref{margin:14px 0 18px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--amb);border-radius:8px;background:var(--surface);font-size:14px;line-height:1.55;max-width:72ch}
+.ref-t{margin:0 0 6px;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ref ul{margin:0;padding-left:18px}
+.ref li{margin:2px 0}
+.okb{opacity:0;transition:opacity .3s}
+.okb.on{opacity:1}
+.cap{display:none}
+</style>
+
+<div class="page">
+
+<p class="eyebrow">Animation 2 · Tâche 1, correction 2</p>
+<h1>Cinq offres au lieu de dix</h1>
+<!-- references -->
+<div class="ref"><p class="ref-t">À quoi se réfère cette animation</p><ul>
+<li><b>Tâche 1</b> : corriger les tests qui échouent</li>
+<li><b>Correction 2</b> : <code>TripPricer.GetPrice</code> renvoie 5 offres au lieu des 10 attendues, fichier <code>TripPricer/TripPricer.cs</code></li>
+<li><b>Test concerné</b> : <code>GetTripDeals</code>, fichier <code>TourGuideTest/TourGuideServiceTest.cs</code>, ligne 104</li>
+<li><b>Code corrigé</b> : lignes 20 et 45 du même fichier</li>
+</ul></div>
+<!-- /references -->
+
+<h2><span class="num">01</span>Deux défauts, découverts l'un après l'autre</h2>
+
+<div class="player" id="pA">
+  <div class="bar">
+    <button data-a="play" class="lead">Lancer</button>
+    <button data-a="prev">Précédent</button>
+    <button data-a="next">Suivant</button>
+    <button data-a="rst">Début</button>
+    <span class="count" data-a="cnt">étape 1 / 12</span>
+  </div>
+  <div class="cap" data-a="cap"></div>
+  <div class="stage">
+<svg viewBox="0 0 820 550" role="img" aria-label="Animation du test GetTripDeals : premier échec avec 5 offres, correction de la boucle, boucle infinie, correction du tirage, puis réussite avec 10 offres.">
+<text x="24" y="30" font-size="13" font-weight="600" fill="var(--tur)" font-family="var(--sans)">LA CHAINE D'APPELS</text>
+<text x="400" y="30" font-size="13" font-weight="600" fill="var(--amb)" font-family="var(--sans)">TripPricer.GetProviderName · LA TABLE DES NOMS</text>
+<line x1="384" y1="40" x2="384" y2="344" stroke="var(--line)" stroke-width="1"/>
+
+<g class="bx" data-a="L1"><rect x="24" y="48" width="340" height="48" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="66" font-size="11" fill="var(--tur)" font-family="var(--sans)">TourGuideServiceTest.cs · le test</text><text x="38" y="86" font-size="12" font-family="var(--mono)" fill="var(--tur-t)">TourGuideServiceTour.GetTripDeals()</text></g>
+
+<g class="bx" data-a="L2"><rect x="24" y="106" width="340" height="64" rx="8" fill="var(--tur-f)" stroke="var(--tur)" stroke-width="1"/><text x="38" y="124" font-size="11" fill="var(--tur)" font-family="var(--sans)">TourGuideService.cs · ligne 75</text><text x="38" y="144" font-size="12" font-family="var(--mono)" fill="var(--tur-t)">TourGuideService.GetTripDeals(user)</text><text x="38" y="162" font-size="10.5" font-family="var(--mono)" fill="var(--tur-t)">cumulativeRewardPoints = 0</text></g>
+
+<g class="bx" data-a="L3"><rect x="24" y="180" width="340" height="64" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="198" font-size="11" fill="var(--amb)" font-family="var(--sans)">TripPricer.cs · ligne 20 · la boucle</text><text x="38" y="218" font-size="12" font-family="var(--mono)" fill="var(--amb-t)" data-a="boucle">for (int i = 0; i &lt; 5; i++)</text><text x="38" y="236" font-size="10.5" font-family="var(--sans)" fill="var(--amb)" data-a="note"></text></g>
+
+<g class="bx" data-a="L4"><rect x="24" y="254" width="340" height="90" rx="8" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="38" y="272" font-size="11" fill="var(--amb)" font-family="var(--sans)">TripPricer.cs · le tirage</text><text x="38" y="292" font-size="11.5" font-family="var(--mono)" fill="var(--amb-t)">do { provider = GetProviderName(...) }</text><text x="38" y="310" font-size="11.5" font-family="var(--mono)" fill="var(--amb-t)">while (providersUsed.Contains(provider))</text><text x="38" y="332" font-size="11" font-family="var(--mono)" fill="var(--rou)" data-a="nextl">ligne 45 : Next(1, 10)</text></g>
+
+<g class="chip" data-a="k1"><rect x="400" y="52" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="412" y="71" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">1 · Holiday Travels</text></g>
+<g class="chip" data-a="k2"><rect x="400" y="88" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="412" y="107" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">2 · Enterprize Ventures</text></g>
+<g class="chip" data-a="k3"><rect x="400" y="124" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="412" y="143" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">3 · Sunny Days</text></g>
+<g class="chip" data-a="k4"><rect x="400" y="160" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="412" y="179" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">4 · FlyAway Trips</text></g>
+<g class="chip" data-a="k5"><rect x="400" y="196" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="412" y="215" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">5 · United Partners</text></g>
+<g class="chip" data-a="k6"><rect x="604" y="52" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="616" y="71" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">6 · Dream Trips</text></g>
+<g class="chip" data-a="k7"><rect x="604" y="88" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="616" y="107" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">7 · Live Free</text></g>
+<g class="chip" data-a="k8"><rect x="604" y="124" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="616" y="143" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">8 · Dancing Waves</text></g>
+<g class="chip" data-a="k9"><rect x="604" y="160" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="616" y="179" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">9 · AdventureCo</text></g>
+<g class="chip" data-a="k10"><rect x="604" y="196" width="196" height="30" rx="5" fill="var(--amb-f)" stroke="var(--amb)" stroke-width="1"/><text x="616" y="215" font-size="10.5" font-family="var(--sans)" fill="var(--amb-t)">10 · Cure-Your-Blues</text></g>
+<text x="400" y="248" font-size="10.5" font-family="var(--mono)" fill="var(--rou)" data-a="tir1">Next(1, 10) exclut 10 : le 10e nom n'est jamais tiré</text>
+<text x="400" y="266" font-size="10.5" font-family="var(--sans)" fill="var(--muted)" data-a="tir2">9 noms atteignables sur 10 écrits dans la table</text>
+
+<text x="24" y="364" font-size="11" fill="var(--muted)" font-family="var(--sans)">providers · la liste rendue par TripPricer.GetPrice</text>
+<g class="slot hid" data-a="s1"><rect x="24" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="46" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 1</text></g>
+<g class="slot hid" data-a="s2"><rect x="100" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="122" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 2</text></g>
+<g class="slot hid" data-a="s3"><rect x="176" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="198" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 3</text></g>
+<g class="slot hid" data-a="s4"><rect x="252" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="274" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 4</text></g>
+<g class="slot hid" data-a="s5"><rect x="328" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="350" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 5</text></g>
+<g class="slot hid" data-a="s6"><rect x="404" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="426" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 6</text></g>
+<g class="slot hid" data-a="s7"><rect x="480" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="502" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 7</text></g>
+<g class="slot hid" data-a="s8"><rect x="556" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="578" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 8</text></g>
+<g class="slot hid" data-a="s9"><rect x="632" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="654" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 9</text></g>
+<g class="slot hid" data-a="s10"><rect x="708" y="372" width="68" height="32" rx="5" fill="var(--tur)" opacity=".24"/><text x="726" y="393" font-size="11" fill="var(--tur-t)" font-family="var(--sans)">offre 10</text></g>
+<text x="24" y="432" font-size="11.5" font-family="var(--mono)" fill="var(--muted)" data-a="used">providersUsed · le carnet : 0 nom</text>
+
+<line x1="60" y1="470" x2="760" y2="470" stroke="var(--line)" stroke-width="2"/>
+<circle class="cur" data-a="cur" cx="60" cy="470" r="7" fill="var(--tur)"/>
+<text x="60" y="492" font-size="10" fill="var(--muted)" font-family="var(--sans)">premier lancement</text>
+<text x="760" y="492" font-size="10" fill="var(--muted)" font-family="var(--sans)" text-anchor="end">test réussi</text>
+<g class="err" data-a="err"><rect x="150" y="508" width="520" height="30" rx="7" fill="var(--rou)"/><text x="170" y="528" font-size="12.5" font-weight="600" fill="var(--rou-f)" font-family="var(--mono)" data-a="errtxt"></text></g>
+<g class="okb" data-a="okb"><rect x="150" y="508" width="520" height="30" rx="7" fill="var(--tur)"/><text x="170" y="528" font-size="12.5" font-weight="600" fill="var(--tur-f)" font-family="var(--mono)">TourGuideServiceTour.GetTripDeals · réussi</text></g>
+</svg>
+  </div>
+</div>
+
+<h2><span class="num">02</span>La correction</h2>
+
+<table>
+<tr><th>Ligne</th><th>Avant</th><th>Après</th><th>Ce que ça change</th></tr>
+<tr><td>45</td><td><code>Next(1, 10)</code></td><td><code>Next(1, 11)</code></td><td>le 10e nom devient atteignable, la table compte enfin 10 voyagistes réels</td></tr>
+<tr><td>20</td><td><code>i &lt; 5</code></td><td><code>i &lt; 10</code></td><td>la boucle demande les 10 offres que le test attend</td></tr>
+</table>
+
+
+<h3>Le résultat</h3>
+<div class="trace">Réussi!  - échec :     0, réussite :     <span class="ok">8</span>, ignorée(s) :     3, total :    11, durée : 11 s<br><br>
+Ignoré  PerformanceTest.HighVolumeGetRewards        <span class="hl">tâche 4</span><br>
+Ignoré  PerformanceTest.HighVolumeTrackLocation     <span class="hl">tâche 3</span><br>
+Ignoré  TourGuideServiceTour.GetNearbyAttractions   <span class="hl">tâche 2</span></div>
+
+<footer>Projet 8 · Améliorez votre application avec des systèmes distribués · document de travail</footer>
+</div>
+
+<script>
+(function(){
+var q=function(n){return document.querySelector('[data-a="'+n+'"]')};
+var ERR={1:"Assert.Equal() Failure · Expected: 10 · Actual: 5",2:"boucle infinie · le test ne se termine jamais"};
+function player(k,S,cfg){
+var i=0,tm=null;
+function draw(){
+  var s=S[i];
+  var c=s.e?"var(--rou)":(s.amb?"var(--amb)":"var(--tur)");
+  ["L1","L2","L3","L4"].forEach(function(b){q(b).classList.toggle("on",s.on.indexOf(b)>-1)});
+  for(var j=1;j<=10;j++){q("k"+j).classList.toggle("used",s.u.indexOf(j)>-1)}
+  var k10=q("k10"),r10=k10.querySelector("rect"),t10=k10.querySelector("text");
+  if(s.f2){r10.setAttribute("fill","var(--amb-f)");r10.setAttribute("stroke","var(--amb)");r10.setAttribute("stroke-dasharray","");t10.setAttribute("fill","var(--amb-t)")}
+  else{r10.setAttribute("fill","var(--rou-f)");r10.setAttribute("stroke","var(--rou)");r10.setAttribute("stroke-dasharray","4 3");t10.setAttribute("fill","var(--rou-t)");k10.classList.add("used")}
+  q("tir1").textContent=s.f2?"Next(1, 11) : les 10 noms peuvent être tirés":"Next(1, 10) exclut 10 : le 10e nom n'est jamais tiré";
+  q("tir1").setAttribute("fill",s.f2?"var(--tur)":"var(--rou)");
+  q("tir2").textContent=s.f2?"10 noms atteignables sur 10 écrits dans la table":"9 noms atteignables sur 10 écrits dans la table";
+  q("nextl").textContent=s.f2?"ligne 45 : Next(1, 11)":"ligne 45 : Next(1, 10)";
+  q("nextl").setAttribute("fill",s.f2?"var(--tur)":"var(--rou)");
+  q("boucle").textContent="for (int i = 0; i < "+s.b+"; i++)";
+  for(var j=1;j<=10;j++){q("s"+j).classList.toggle("hid",s.n<j)}
+  q("used").textContent="providersUsed · le carnet : "+s.u.length+" nom"+(s.u.length>1?"s":"");
+  q("note").textContent=s.p;
+  q("cur").setAttribute("cx",60+s.t/100*700);q("cur").setAttribute("fill",c);
+  q("err").classList.toggle("on",!!s.e);q("errtxt").textContent=ERR[s.e]||"";
+  q("okb").classList.toggle("on",!!s.ok);
+  q("cap").innerHTML=s.c;q("cap").style.borderLeftColor=c;
+  q("cnt").textContent="étape "+(i+1)+" / "+S.length;
+  q("prev").disabled=i===0;q("next").disabled=i===S.length-1;
+}
+function stop(){if(tm){clearInterval(tm);tm=null}q("play").textContent="Lancer"}
+q("play").onclick=function(){
+  if(tm){stop();return}
+  if(i===S.length-1){i=0}
+  q("play").textContent="Pause";
+  tm=setInterval(function(){if(i<S.length-1){i++;draw()}else{stop()}},3200);
+  draw();
+};
+q("next").onclick=function(){stop();if(i<S.length-1){i++;draw()}};
+q("prev").onclick=function(){stop();if(i>0){i--;draw()}};
+q("rst").onclick=function(){stop();i=0;draw()};
+draw();
+}
+player("a",[
+{c:"",on:["L1","L2"],u:[],n:0,t:0,b:5,f2:0,p:"avant le premier tour"},
+{c:"",on:["L3"],amb:1,u:[],n:0,t:8,b:5,f2:0,p:"i = 0, la boucle démarre"},
+{c:"",on:["L4"],amb:1,u:[3],n:1,t:16,b:5,f2:0,p:"tour 1 sur 5"},
+{c:"",on:["L4"],amb:1,u:[3,7,1,8,5],n:5,t:26,b:5,f2:0,p:"tour 5 sur 5"},
+{c:"",on:["L1","L3"],u:[3,7,1,8,5],n:5,t:36,b:5,f2:0,p:"boucle terminée, 5 offres",e:1},
+{c:"",on:["L3"],amb:1,u:[],n:0,t:46,b:10,f2:0,p:"corrigée : 10 tours demandés"},
+{c:"",on:["L4"],amb:1,u:[3,7,1,8,5,2,9,4,6],n:9,t:56,b:10,f2:0,p:"tour 9 sur 10"},
+{c:"",on:["L4"],amb:1,u:[3,7,1,8,5,2,9,4,6],n:9,t:66,b:10,f2:0,p:"tour 10 sur 10"},
+{c:"",on:["L4"],u:[3,7,1,8,5,2,9,4,6],n:9,t:74,b:10,f2:0,p:"tour 10 : boucle infinie",e:2},
+{c:"",on:["L4"],amb:1,u:[],n:0,t:84,b:10,f2:1,p:"i = 0, la boucle démarre"},
+{c:"",on:["L4"],amb:1,u:[3,7,1,8,5,2,9,4,6,10],n:10,t:92,b:10,f2:1,p:"tour 10 sur 10"},
+{c:"",on:["L1"],u:[3,7,1,8,5,2,9,4,6,10],n:10,t:100,b:10,f2:1,p:"boucle terminée, 10 offres",ok:1}
+],{});
+})();
+</script>
