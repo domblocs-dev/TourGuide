@@ -20,13 +20,13 @@ utilisateurs, et chaîne d'intégration continue.
 
 ## Structure de la solution
 
-| Projet          | Rôle                                                                                                                                                      |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Api`           | l'API Web : contrôleur, services `TourGuideService` et `RewardsService`, et `Tracker`, qui relance le suivi de tous les utilisateurs toutes les 5 minutes |
-| `GpsUtil`       | librairie de géolocalisation (simulée, 30 à 100 ms par appel)                                                                                             |
-| `RewardCentral` | librairie de calcul des points de récompense (simulée, 1 à 1 000 ms par appel)                                                                            |
-| `TripPricer`    | librairie des offres de séjour                                                                                                                            |
-| `TourGuideTest` | tests xUnit : fonctionnels et de performance                                                                                                              |
+| Projet          | Rôle                                                                                                                                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Api`           | l'API Web : contrôleur, services `TourGuideService` et `RewardsService`, et `Tracker`, qui suit tous les utilisateurs, puis fait une pause de 5 minutes avant le tour suivant |
+| `GpsUtil`       | librairie de géolocalisation (simulée, 30 à 100 ms par appel)                                                                                                                 |
+| `RewardCentral` | librairie de calcul des points de récompense (simulée, 1 à 1 000 ms par appel)                                                                                                |
+| `TripPricer`    | librairie des offres de séjour                                                                                                                                                |
+| `TourGuideTest` | tests xUnit : fonctionnels et de performance                                                                                                                                  |
 
 Il n'y a pas de base de données : au démarrage, l'application crée 100 utilisateurs
 fictifs, nommés `internalUser0` à `internalUser99`.
