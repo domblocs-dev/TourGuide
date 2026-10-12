@@ -59,7 +59,8 @@ public class TourGuideService : ITourGuideService
 
     public User GetUser(string userName)
     {
-        return _internalUserMap.ContainsKey(userName) ? _internalUserMap[userName] : null;
+        // return _internalUserMap.ContainsKey(userName) ? _internalUserMap[userName] : null;
+        return _internalUserMap.TryGetValue(userName, out User? user) ? user : null;
     }
 
     public List<User> GetAllUsers()
