@@ -54,7 +54,8 @@ public class TourGuideService : ITourGuideService
 
     public VisitedLocation GetUserLocation(User user)
     {
-        return user.VisitedLocations.Any() ? user.GetLastVisitedLocation() : TrackUserLocation(user);
+        // return user.VisitedLocations.Any() ? user.GetLastVisitedLocation() : TrackUserLocation(user);
+        return user.GetLastVisitedLocationOrDefault() ?? TrackUserLocation(user);
     }
 
     public User GetUser(string userName)

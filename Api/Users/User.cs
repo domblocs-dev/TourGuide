@@ -69,4 +69,12 @@ public class User
             return _visitedLocations[^1];
         }
     }
+
+    public VisitedLocation? GetLastVisitedLocationOrDefault()
+    {
+        lock (_verrou)
+        {
+            return _visitedLocations.Count > 0 ? _visitedLocations[^1] : null;
+        }
+    }
 }
