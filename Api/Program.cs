@@ -14,10 +14,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<IRewardsService, RewardsService>();
-builder.Services.AddScoped<ITourGuideService, TourGuideService>();
-builder.Services.AddScoped<IGpsUtil, GpsUtilWrapper>();
-builder.Services.AddScoped<IRewardCentral, RewardCentralWrapper>();
+builder.Services.AddSingleton<IRewardsService, RewardsService>();
+builder.Services.AddSingleton<ITourGuideService, TourGuideService>();
+builder.Services.AddSingleton<IGpsUtil, GpsUtilWrapper>();
+builder.Services.AddSingleton<IRewardCentral, RewardCentralWrapper>();
 
 var app = builder.Build();
 
