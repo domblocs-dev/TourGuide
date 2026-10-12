@@ -54,13 +54,11 @@ public class TourGuideService : ITourGuideService
 
     public VisitedLocation GetUserLocation(User user)
     {
-        // return user.VisitedLocations.Any() ? user.GetLastVisitedLocation() : TrackUserLocation(user);
         return user.GetLastVisitedLocationOrDefault() ?? TrackUserLocation(user);
     }
 
     public User GetUser(string userName)
     {
-        // return _internalUserMap.ContainsKey(userName) ? _internalUserMap[userName] : null;
         return _internalUserMap.TryGetValue(userName, out User? user) ? user : null;
     }
 
@@ -101,20 +99,6 @@ public class TourGuideService : ITourGuideService
         Parallel.ForEach(users, options, user => TrackUserLocation(user));
     }
 
-
-    /* public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
-    {
-        List<Attraction> nearbyAttractions = new ();
-        foreach (var attraction in _gpsUtil.GetAttractions())
-        {
-            if (_rewardsService.IsWithinAttractionProximity(attraction, visitedLocation.Location))
-            {
-                nearbyAttractions.Add(attraction);
-            }
-        }
-
-        return nearbyAttractions;
-    } */
 
     public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
     {

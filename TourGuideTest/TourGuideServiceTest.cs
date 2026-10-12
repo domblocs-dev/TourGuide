@@ -85,7 +85,6 @@ namespace TourGuideTest
             Assert.Equal(user.UserId, visitedLocation.UserId);
         }
 
-        //[Fact(Skip = "Not yet implemented")]
         [Fact] // Tâche 2
         public void GetNearbyAttractions()
         {
