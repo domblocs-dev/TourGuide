@@ -128,13 +128,13 @@ l'exécution concernée.
 ## Animations
 
 Cinq animations montrent, étape par étape, le défaut corrigé et le fonctionnement de la
-correction. Ce sont des pages HTML autonomes, sans bibliothèque : il suffit de les
-télécharger puis de les ouvrir dans un navigateur.
+correction. Ce sont des pages HTML autonomes, sans bibliothèque, publiées avec GitHub Pages : un clic
+les ouvre dans le navigateur.
 
-| Fichier                                                                      | Sujet                                                            |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [1conflit_concurrence.html](docs/animations/1conflit_concurrence.html)       | le conflit d'accès concurrent sur les listes de l'utilisateur    |
-| [2offres_sejour.html](docs/animations/2offres_sejour.html)                   | les offres de séjour, de 5 à 10                                  |
-| [3attractions_proches.html](docs/animations/3attractions_proches.html)       | les 5 attractions les plus proches et leurs calculs en parallèle |
-| [4suivi_parallele.html](docs/animations/4suivi_parallele.html)               | le suivi de 100 000 utilisateurs en parallèle                    |
-| [5recompenses_paralleles.html](docs/animations/5recompenses_paralleles.html) | le calcul des récompenses de 100 000 utilisateurs en parallèle   |
+| Fichier                                                                                                          | Sujet                                                            |
+| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [1conflit_concurrence.html](https://domblocs-dev.github.io/TourGuide/animations/1conflit_concurrence.html)       | le conflit d'accès concurrent sur les listes de l'utilisateur    |
+| [2offres_sejour.html](https://domblocs-dev.github.io/TourGuide/animations/2offres_sejour.html)                   | les offres de séjour, de 5 à 10                                  |
+| [3attractions_proches.html](https://domblocs-dev.github.io/TourGuide/animations/3attractions_proches.html)       | les 5 attractions les plus proches et leurs calculs en parallèle |
+| [4suivi_parallele.html](https://domblocs-dev.github.io/TourGuide/animations/4suivi_parallele.html)               | le suivi de 100 000 utilisateurs en parallèle                    |
+| [5recompenses_paralleles.html](https://domblocs-dev.github.io/TourGuide/animations/5recompenses_paralleles.html) | le calcul des récompenses de 100 000 utilisateurs en parallèle   |
