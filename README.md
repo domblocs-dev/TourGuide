@@ -23,8 +23,8 @@ utilisateurs, et chaîne d'intégration continue.
 | Projet          | Rôle                                                                                                                                                                          |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Api`           | l'API Web : contrôleur, services `TourGuideService` et `RewardsService`, et `Tracker`, qui suit tous les utilisateurs, puis fait une pause de 5 minutes avant le tour suivant |
-| `GpsUtil`       | librairie de géolocalisation (simulée, 30 à 100 ms par appel)                                                                                                                 |
-| `RewardCentral` | librairie de calcul des points de récompense (simulée, 1 à 1 000 ms par appel)                                                                                                |
+| `GpsUtil`       | librairie de géolocalisation (simulée, 30 à 99 ms par appel)                                                                                                                  |
+| `RewardCentral` | librairie de calcul des points de récompense (simulée, 1 à 999 ms par appel)                                                                                                  |
 | `TripPricer`    | librairie des offres de séjour                                                                                                                                                |
 | `TourGuideTest` | tests xUnit : fonctionnels et de performance                                                                                                                                  |
 
