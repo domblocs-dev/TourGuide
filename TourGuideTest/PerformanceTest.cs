@@ -58,10 +58,6 @@ namespace TourGuideTest
             stopWatch.Start();
 
             _fixture.TourGuideService.TrackAllUsersLocation(allUsers);
-            /* foreach (var user in allUsers)
-            {
-                _fixture.TourGuideService.TrackUserLocation(user);
-            } */
 
             stopWatch.Stop();
             _fixture.TourGuideService.Tracker.StopTracking();
